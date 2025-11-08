@@ -1,24 +1,23 @@
-
 # Project Brief: Bitcoin Minute Prediction Game
 
 ## Overview
 
-This project is a simple **web app** where users can make short-term predictions (bets) on whether the **BTC/USD price** will go **up or down** after one minute. The game provides real-time market visualization, user score tracking, and persistent bet data storage.
+This project is a simple **web app** where users make short-term predictions (bets) on whether the **BTC/USD price** goes **up or down** after one minute. The game provides real-time market visualization, user score tracking, and persistent bet data storage.
 
-The app will consist of three main components:
-- **Frontend (FE)** — A React + TypeScript single-page interface.
-- **Backend (BE)** — A Node.js + TypeScript REST API.
-- **Database (DB)** — A simple SQL database (MariaDB initially, compatible with PostgreSQL).
+The app consists of three main components:
+- **Frontend (FE)** — A React + TypeScript single-page interface
+- **Backend (BE)** — A Node.js + TypeScript REST API
+- **Database (DB)** — A simple SQL database (MariaDB initially, compatible with PostgreSQL)
 
 ---
 
 ## Core Concept
 
 The app lets users:
-1. Automatically **create a session** on first use (authentication to be added later)
-2. View the **current BTC/USD market price** (from Binance API).
-3. Place a **Long Bet (Up)** or **Short Bet (Down)** predicting if the price will rise or fall in one minute.
-4. View **past bets** and **their current score**.
+1. Automatically **create a session** on first use
+2. View the **current BTC/USD market price** (from Binance API)
+3. Place a **Long Bet (Up)** or **Short Bet (Down)** predicting if the price will rise or fall in one minute
+4. View **their current score**
 5. Resume their session using a **cookie-based player ID**
 
 ---
@@ -27,25 +26,24 @@ The app lets users:
 
 JWT tokens are used for authorization to prevent user impersonation
 
-- On first use a `token` is returned from the backend
-- All subsequent requests must include the token
-- The backend returns an error if the token is invalid or belongs to a different user
+- On first use, the frontend requests a `token` from the backend
+- The frontend includes the `token` in all subsequent requests
+- The backend ensures that the `token` is valid and uses it to identify the user
 
 ## Functional Requirements
 
 ### Gameplay Rules
 
-- Each player starts with a **score of 0**.
-- The player can only have **one active bet** at a time.
-- Bets **resolve after one minute**, rounded up to `:00` seconds for simplicity.
+- Each player starts with a **score of 0**
+- The player can only have **one active bet** at a time
+- Bets **resolve after one minute**, rounded up to `:00` seconds
 - Once complete, the system compares:
-  - **Creation Price** (when bet placed)
+  - **Creation Price** (when bet is placed)
   - **Resolution Price** (after one minute)
 - If the prediction is correct:
   - Score += 1
 - If incorrect:
   - Score −= 1
-- The score is computed **client-side** from bet history.
 
 ---
 
@@ -55,62 +53,74 @@ JWT tokens are used for authorization to prevent user impersonation
 
 - **Stack:** React + TypeScript + Vite
 - **UI Components:**
-  - **Top Left:** Ticker name (fixed: BTCUSD; list support planned)
-  - **Main Section:** Candlestick chart (minute granularity)
-  - **Right Panel:** Two buttons:
-    - 🟩 Long Bet (Up)
-    - 🟥 Short Bet (Down)
+  - **Left Panel:**
+    - Top: User’s **Name** (editable; nice to have) and **Score**
+    - Bottom Left: **Leaderboard** with users' names and scores (nice to have)
+  - **Main Section:** Two buttons:
+    - Right: **Ticker name** BTCUSD (ticker selection is a nice to have) and **Current price**
+    - Left: **Place a bet** or **Current bet price**
+      - 🟩 Long Bet (Up)
+      - 🟥 Short Bet (Down)
   - **Bottom Section:**
-    - Left: User’s **score**
-    - Right: List of **bets**, sorted by date (latest first)
-  - **Top Right:** Placeholder for Google Authentication (future enhancement)
-- **Chart:** Uses OHLC data fetched from BE `/chart/{ticker}`
-- **Authoriyation:** JWT token stored as a HTTP cookie
-- **Score Calculation:** UI only, computed from resolved bets
+     - **Candlestick chart** with 1s granularity (nice to have)
+
+- **Current Price** and **Chart** are updated every second with polling (Websocket is a nice to have)
+- **Leaderboard** is updated every minute or when the user name is changed
+- **Chart** uses OHLC data fetched from the BE
+- **Authorization** JWT token is stored as an HTTP cookie
+
+---
+
+### API
+
+- **Endpoints:**
+
+  | Method | Endpoint | Description |
+  |--------|----------|-------------|
+  | `POST` | `/auth` | Creates a new user/session |
+  | `GET` | `/score` | Returns the user's score |
+  | `GET` | `/scores` | Returns a list of users and their scores (nice to have) |
+  | `POST` | `/name` | Sets the user name (nice to have) |
+  | `GET` | `/tickers` | Returns the list of supported tickers |
+  | `POST` | `/bet/{ticker}/{short\|long}` | Creates a new bet |
+  | `GET` | `/price/{ticker}/current` | Returns current price |
+  | `GET` | `/price/{ticker}/history` | Returns OHLC price data for the last 120 seconds (nice to have) |
 
 ---
 
 ### Backend
 
 - **Stack:** Node.js + TypeScript
-- **Endpoints:**
 
-  | Method | Endpoint | Description |
-  |--------|----------|-------------|
-  | `POST` | `/auth` | Creates a new user/session |
-  | `GET` | `/bets` | Returns list of user bets with details |
-  | `POST` | `/bet/{ticker}/{short\|long}` | Creates a new bet |
-  | `GET` | `/price/{ticker}/current` | Returns OHLC price data for the current and previous minute |
-  | `GET` | `/price/{ticker}/historical` | Returns historical OHLC price data in minute granularity |
-  
-  - **Authentication Logic**
+- **Authentication Logic**
+  - The `POST /auth` endpoint creates a user and returns their `token`
+  - `token` is in JWT format, signed with a backend secret and contains `user_id` in the payload
+  - `user_id` is generated by the DB on insert to the `users` table
+  - `token` is required to be present in the `Authorization` HTTP header for all other endpoints
+  - `token` signature is validated by the backend using the secret; an error is returned if the signature is invalid
+  - The user is identified based on the `user_id` in the token
 
-  - The `POST /auth` endpoint creates an user and returns its `token`
-  - The token is in JWT format signed with a server secret and its payload contains the `user_id`
-  - The `user_id` is generated by the DB on insert to the `users` table
-  - The token is required to be present in the `Authorization` HTTP header for all other endpoints
-  - The backend validates the token signature and ensures that the request only affects data belonging to the `user_id` in the token
-
-- **Market Data Component:**
-  - Fetches minute-granularity market data using **Binance API**
-  - Caches data for the 24 hours
+- **Market Data Service:**
+  - Fetches 1s granularity market data using **Binance API**
+  - Caches data for the last 120 seconds
   - Returns current or historical data
-  - For historical price requests it uses the **Candlestick REST API**
-  - For current price requests it opens a **Candlestick Stream Websocket API** session
-  - The websocket session is closed if no current price request arrives for the ticker in the lst 5 minutes
+  - Uses the **Candlestick REST API** for historical price requests
+  - Opens a **Candlestick Stream Websocket API** session for current price requests
+  - The websocket session is closed if no current price request arrives for the ticker in the last 5 minutes
 
 - **Business Logic:**
-  - Bets are stored in `bets` table
-  - `GET /bets` and `POST /bet` perform CRUD operations
-  - `POST /bet` enforces a unique open bet constraint via the DB
-  - Resolution time is calculated by adding a minute to the current time then rounding up to `:00` seconds
+  - Bets are stored in the `bets` table
+  - `POST /bet` performs an insertion
+  - Resolution time is calculated by adding one minute to the current time, then rounding up to `:00` seconds
+  - A unique open bet constraint is enforced via the DB
  
-- **Bet Resolution Job**
-  - Worker task running in the background
-  - Wakes up every minute at :00 second
-  - Reads open bets from `bets` table
-  - Calls market data to get the price at resolution for all tickers
-  - Updates status and resolution time in `bets` table
+- **Bet Resolution Service**
+  - A worker task runs in the background
+  - Wakes up every minute at the :00 second mark
+  - Reads open bets from the `bets` table
+  - Calls the market data service to get the price at resolution
+  - Updates the score in the `users` table
+  - Updates the status and resolution time in the `bets` table
   - Sleeps until the beginning of the next minute after wakeup
 
 ---
@@ -124,41 +134,54 @@ JWT tokens are used for authorization to prevent user impersonation
 | `bet_id` | INT (PRIMARY KEY AUTO INCREMENT) | Unique bet identifier |
 | `user_id` | INT | User identifier |
 | `ticker` | VARCHAR | Ticker symbol (e.g., BTCUSD) |
-| `open_date` | DATETIME | Time when bet was made |
-| `resolution_date` | DATETIME | Bet expiration time (rounded up to minute) |
+| `opened_at` | DATETIME | Time when bet was opened |
+| `resolve_at` | DATETIME | Bet resolution time |
 | `direction` | ENUM('LONG','SHORT') | Bet type |
-| `open_price` | DECIMAL(10,4) | Price when bet was made |
-| `resolution_price` | DECIMAL(10,4) (nullable) | Price at expiration |
+| `open_price` | DECIMAL(10,4) | Price when bet was opened |
+| `resolution_price` | DECIMAL(10,4) (nullable) | Price at resolution |
 | `status` | ENUM('OPEN','WON','LOST') | Bet status |
-| **Indexes** | (`user_id`, `resolution_date DESC`) | For listing bets per user |
-| **Constraint** | CREATE UNIQUE INDEX bets_user_ticker_status(`user_id`, `ticker`) WHERE `status` = 'OPEN' | Ensures one active bet per ticker per user |
+| **Indexes** | (`user_id`, `resolve_at` DESC) | For listing bets per user |
+| **Constraint** | UNIQUE INDEX (`user_id`, `ticker`) WHERE `status` = 'OPEN' | Ensures one active bet per ticker per user |
 
 **Table: `users`**
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `user_id` | INT (PRIMARY KEY AUTO INCREMENT) | Unique user identifier |
-| `created_at` | DATETIME | Timestamp when the user account was created |
+| `created_at` | DATETIME | Time when the user account was created |
+| `last_bet_placed_at` | DATETIME | Last time when the user placed a bet |
+| `score` | INT | Current score |
+
+**Table: `schema_history`**
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `migration_id` | INT (PRIMARY KEY AUTO INCREMENT) | Unique migration identifier |
+| `applied_at` | DATETIME | Timestamp when the migration was applied |
 
 ---
 
 ### Database Migrations
 
-Since the schema is simple, initially no versioned migrations will be used
+- A very simple custom migration approach is used
+- A **Migration Service** runs on each startup of the backend
+  - It queries the latest applied migration from the `schema_history` table
+  - It applies missing migrations one by one
+- Migration scripts are stored inline as multi-line string constants
 
 ---
 
 ## Deployment
 
-The application will run as **three Docker containers**, all based on **Alpine images**:
+The application runs as **three Docker containers**, all based on **Alpine images**:
 
 1. **Frontend Container**
-   - Static React build served by **nginx**
+   - static React build served by **nginx**
    - Also acts as a **reverse proxy** to the backend API
 
 2. **Backend Container**
    - Node.js server (REST API)
-   - Connects to DB and Binance API
+   - Connects to the DB and Binance API
 
 3. **Database Container**
    - MariaDB instance
@@ -168,50 +191,41 @@ The application will run as **three Docker containers**, all based on **Alpine i
 
 ---
 
-## Future Enhancements
+## Enhancements
 
-- Add multiple tickers (ETHUSD, SOLUSD, etc.)
-- Google authentication
+- Chart
+- Leaderboard
+- Multiple ticker support (ETHUSD, SOLUSD, etc)
+- Password and Google authentication
 - Move DB to managed cloud service (AWS RDS)
 
 ---
 
 ## Suggested Milestones
 
-### **Phase 1: Setup & Scaffolding**
-- [ ] Initialize repository and CI/CD workflow
-- [ ] Create Vite + React TypeScript frontend scaffold
-- [ ] Create Node.js + Express TypeScript backend scaffold
-- [ ] Define Dockerfiles for FE, BE, DB
+### **Milestone 1: Setup & Scaffolding**
+- [ ] **Repository:** Initialize monorepo and Git workflow
+- [ ] **Scaffolding:** Create FE (Vite/React) and BE (Node/Express) projects
+- [ ] **Containerization:** Define `Dockerfiles` and `docker-compose.yml`
+- [ ] **CI/CD:** Set up a basic CI/CD pipeline for automated builds
 
-### **Phase 2: Backend Core**
-- [ ] Implement `/chart/{ticker}` endpoint using Binance API
-- [ ] Implement `/bet/{ticker}/{short|long}` with DB insertion and constraints
-- [ ] Implement `/bets` to return and update bets with expiry checks
-- [ ] Create SQL schema and migrations
+### **Milestone 2: Frontend layout, display current price**
+- [ ] **UI Shell:** Implement the static frontend layout and component structure
+- [ ] **BE Endpoint:** Create the `GET /price/current` endpoint
+- [ ] **BE Service:** Implement the `MarketDataService`
+- [ ] **FE Integration:** Fetch and display the live price on the frontend
 
-### **Phase 3: Frontend Core**
-- [ ] Implement static layout (chart, buttons, score, bet list)
-- [ ] Integrate chart data from BE
-- [ ] Implement placing bets and updating UI state
-- [ ] Display user score and past bets
+### **Milestone 3: Authentication, display user score**
+- [ ] **BE Endpoints:** Create `POST /auth` and `GET /score` endpoints
+- [ ] **DB Schema:** Build the initial database schema and `MigrationService`
+- [ ] **FE Auth:** Implement the JWT request and storage flow
+- [ ] **FE Integration:** Display the user's score
 
-### **Phase 4: Persistence & Logic**
-- [ ] Store user ID in cookie
-- [ ] Ensure bets persist and reload correctly
-- [ ] Compute score from bets client-side
-
-### **Phase 5: Deployment**
-- [ ] Containerize FE, BE, and DB
-- [ ] Configure nginx reverse proxy
-- [ ] Push images to GitHub Container Registry
-- [ ] Deploy using Docker Compose or cloud VM
-
-### **Phase 6: Testing & Polish**
-- [ ] Add unit tests for BE logic
-- [ ] Add E2E tests for FE (Playwright/Cypress)
-- [ ] Validate correctness of bet resolution
-- [ ] Prepare demo deployment link
+### **Milestone 4: Place and resolve bets**
+- [ ] **BE Endpoint:** Create the `POST /bet` endpoint
+- [ ] **BE Service:** Implement the `BetResolutionService`
+- [ ] **FE UI:** Build the UI for placing bets
+- [ ] **FE Integration:** Display the user's active and past bets
 
 ---
 
@@ -222,15 +236,5 @@ The application will run as **three Docker containers**, all based on **Alpine i
   - Frontend & backend code
   - Dockerfiles & compose config
   - `PROJECT.md` (this document)
-- Optional: Screenshots or short demo video
 
 ---
-
-## Success Criteria
-
-- ✅ Bets resolve correctly based on minute-level market data  
-- ✅ Users retain session and score via cookie  
-- ✅ Frontend updates dynamically with real-time chart and results  
-- ✅ App runs locally via Docker Compose  
-- ✅ Deployable and publicly accessible  
-```
