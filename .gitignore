@@ -1,5 +1,16 @@
 # Dependencies
-/node_modules
+node_modules/
+package-lock.json
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Vite
+.vite/
+.next/
+coverage/
 
 # Environment variables
 .env
