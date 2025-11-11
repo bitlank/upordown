@@ -1,23 +1,22 @@
-# Use an official Node.js runtime as a parent image
-FROM node:20-alpine
+FROM node:20-alpine AS builder
 
-# Set the working directory in the container
-WORKDIR /app
-
-# Copy package.json and package-lock.json to the working directory
-COPY package*.json ./
-
-# Install application dependencies
+WORKDIR /app/backend
+COPY backend/package*.json .
 RUN npm install
 
-# Copy the rest of the application source code
-COPY . .
+WORKDIR /app
+COPY backend backend
+COPY shared shared
 
-# Build the application
+WORKDIR /app/backend
 RUN npm run build
 
-# Expose the port the app runs on
+FROM node:20-alpine
+
+WORKDIR /app/backend
+COPY --from=builder /app/backend/node_modules node_modules
+COPY --from=builder /app/backend/dist dist
+
 EXPOSE 3000
 
-# Define the command to run the application
-CMD [ "npm", "start" ]
+CMD ["node", "dist/index.js"]

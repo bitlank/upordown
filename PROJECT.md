@@ -57,7 +57,7 @@ JWT tokens are used for authorization to prevent user impersonation
     - Top: User’s **Name** (editable; nice to have) and **Score**
     - Bottom Left: **Leaderboard** with users' names and scores (nice to have)
   - **Main Section:** Two buttons:
-    - Right: **Ticker name** BTCUSD (ticker selection is a nice to have) and **Current price**
+    - Right: **Ticker name** BTCUSDT (ticker selection is a nice to have) and **Current price**
     - Left: **Place a bet** or **Current bet price**
       - 🟩 Long Bet (Up)
       - 🟥 Short Bet (Down)
@@ -105,8 +105,8 @@ JWT tokens are used for authorization to prevent user impersonation
   - Caches data for the last 120 seconds
   - Returns current or historical data
   - Uses the **Candlestick REST API** for historical price requests
-  - Opens a **Candlestick Stream Websocket API** session for current price requests
-  - The websocket session is closed if no current price request arrives for the ticker in the last 5 minutes
+  - Uses the **Candlestick Stream Websocket API** for current price requests
+  - The websocket session is closed if no current price request arrives in the last 5 minutes
 
 - **Business Logic:**
   - Bets are stored in the `bets` table
@@ -133,7 +133,7 @@ JWT tokens are used for authorization to prevent user impersonation
 |--------|------|-------------|
 | `bet_id` | INT (PRIMARY KEY AUTO INCREMENT) | Unique bet identifier |
 | `user_id` | INT | User identifier |
-| `ticker` | VARCHAR | Ticker symbol (e.g., BTCUSD) |
+| `ticker` | VARCHAR | Ticker symbol (e.g., BTCUSDT) |
 | `opened_at` | DATETIME | Time when bet was opened |
 | `resolve_at` | DATETIME | Bet resolution time |
 | `direction` | ENUM('LONG','SHORT') | Bet type |
@@ -212,7 +212,7 @@ The application runs as **three Docker containers**, all based on **Alpine image
 ### **Milestone 2: Frontend layout, display current price**
 - [ ] **UI Shell:** Implement the static frontend layout and component structure
 - [ ] **BE Endpoint:** Create the `GET /price/current` endpoint
-- [ ] **BE Service:** Implement the `MarketDataService`
+- [ ] **BE Service:** Implement `MarketDataService` for current price
 - [ ] **FE Integration:** Fetch and display the live price on the frontend
 
 ### **Milestone 3: Authentication, display user score**

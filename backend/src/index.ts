@@ -1,4 +1,5 @@
 import express from 'express';
+import priceController from './controllers/price-controller.js';
 
 const app = express();
 const port = process.env.LISTEN_PORT || 3000;
@@ -10,10 +11,18 @@ app.use((_req, res, next) => {
   next();
 });
 
+// Health check endpoint
 app.get('/', (_req, res) => {
-  res.send('Hello from the backend!');
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.use('/price', priceController);
+
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Oops!' });
 });
 
 app.listen(port, () => {
-  console.log(`Backend server is running at http://localhost:${port}`);
+  console.log(`Backend running at http://localhost:${port}`);
 });

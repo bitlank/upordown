@@ -6,6 +6,7 @@ package-lock.json
 dist/
 build/
 out/
+tsconfig.tsbuildinfo
 
 # Vite
 .vite/

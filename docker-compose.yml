@@ -1,7 +1,8 @@
 services:
   frontend:
     build:
-      context: ./frontend
+      dockerfile: frontend/Dockerfile
+      context: .
     ports:
       - "8080:80"
     environment:
@@ -13,7 +14,8 @@ services:
 
   backend:
     build:
-      context: ./backend
+      dockerfile: backend/Dockerfile
+      context: .
     environment:
       - DB_HOST=db
       - DB_PORT=3306
@@ -21,8 +23,6 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - DB_NAME=${DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
-      - BINANCE_API_KEY=${BINANCE_API_KEY}
-      - BINANCE_API_SECRET=${BINANCE_API_SECRET}
       - LISTEN_PORT=3000
     networks:
       - frontend
