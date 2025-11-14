@@ -113,7 +113,7 @@ JWT tokens are used for authorization to prevent user impersonation
   - `POST /bet` performs an insertion
   - Resolution time is calculated by adding one minute to the current time, then rounding up to `:00` seconds
   - A unique open bet constraint is enforced via the DB
- 
+
 - **Bet Resolution Service**
   - A worker task runs in the background
   - Wakes up every minute at the :00 second mark
@@ -161,13 +161,19 @@ JWT tokens are used for authorization to prevent user impersonation
 
 ---
 
-### Database Migrations
+### Database Access
 
-- A very simple custom migration approach is used
-- A **Migration Service** runs on each startup of the backend
+**Migrations**
+
+- A very simple migration runner job is executed on each startup
   - It queries the latest applied migration from the `schema_history` table
-  - It applies missing migrations one by one
-- Migration scripts are stored inline as multi-line string constants
+  - Applies missing migrations one by one
+  - Migration scripts are stored inline as multi-line string constants
+
+**Queries**
+
+-Queries are implemented in raw SQL without any ORM or query builder
+-A connection pool is utilized with parameterized queries to avoid SQL injections
 
 ---
 

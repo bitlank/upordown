@@ -1,5 +1,10 @@
 import express from 'express';
 import priceController from './controllers/price-controller.js';
+import runMigrations from './db/db-migrations.js';
+import { initializePool } from './db/db-pool.js';
+
+await runMigrations();
+await initializePool();
 
 const app = express();
 const port = process.env.LISTEN_PORT || 3000;
