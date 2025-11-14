@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BinanceService } from '../src/services/binance-service';
+import { BinanceService } from '../../src/price/binance-service.js';
 
 describe('BinanceService.fetchPrice', () => {
   beforeEach(() => {

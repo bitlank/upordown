@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import MarketDataService from '../services/market-data-service.js';
+import PriceService from './price-service.js';
 
 const router = Router();
 
@@ -10,7 +10,7 @@ router.get('/:ticker/current', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
 
-  const priceData = await MarketDataService.getCurrentPrice(ticker.toUpperCase());
+  const priceData = await PriceService.getCurrentPrice(ticker.toUpperCase());
   res.json(priceData);
 });
 
@@ -26,7 +26,7 @@ router.get('/:ticker/history', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Limit must be between 1 and 120' });
   }
 
-  const history = await MarketDataService.getHistoricalPrices(ticker.toUpperCase(), limit);
+  const history = await PriceService.getHistoricalPrices(ticker.toUpperCase(), limit);
   res.json(history);
 });
 

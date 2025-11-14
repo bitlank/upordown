@@ -100,8 +100,8 @@ JWT tokens are used for authorization to prevent user impersonation
   - `token` signature is validated by the backend using the secret; an error is returned if the signature is invalid
   - The user is identified based on the `user_id` in the token
 
-- **Market Data Service:**
-  - Fetches 1s granularity market data using **Binance API**
+- **Price Service:**
+  - Fetches 1s granularity price data using **Binance API**
   - Caches data for the last 120 seconds
   - Returns current or historical data
   - Uses the **Candlestick REST API** for historical price requests
@@ -118,7 +118,7 @@ JWT tokens are used for authorization to prevent user impersonation
   - A worker task runs in the background
   - Wakes up every minute at the :00 second mark
   - Reads open bets from the `bets` table
-  - Calls the market data service to get the price at resolution
+  - Calls price service to get the price at resolution
   - Updates the score in the `users` table
   - Updates the status and resolution time in the `bets` table
   - Sleeps until the beginning of the next minute after wakeup
@@ -218,7 +218,7 @@ The application runs as **three Docker containers**, all based on **Alpine image
 ### **Milestone 2: Frontend layout, display current price**
 - [ ] **UI Shell:** Implement the static frontend layout and component structure
 - [ ] **BE Endpoint:** Create the `GET /price/current` endpoint
-- [ ] **BE Service:** Implement `MarketDataService` for current price
+- [ ] **BE Service:** Implement `PriceService` for current price
 - [ ] **FE Integration:** Fetch and display the live price on the frontend
 
 ### **Milestone 3: Authentication, display user score**

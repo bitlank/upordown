@@ -1,8 +1,8 @@
 import binanceService, { BinanceStream } from './binance-service.js';
 import { PriceData } from '@shared/api-interfaces';
 
-class MarketDataService {
-  private static instance: MarketDataService;
+class PriceService {
+  private static instance: PriceService;
   private readonly lastAccessTime: Map<string, number> = new Map();
   private readonly prices: Map<string, PriceData> = new Map();
   private readonly timeoutMillis = 5 * 60 * 1000;
@@ -17,11 +17,11 @@ class MarketDataService {
     setInterval(() => this.cleanup(), 60000);
   }
 
-  public static getInstance(): MarketDataService {
-    if (!MarketDataService.instance) {
-      MarketDataService.instance = new MarketDataService();
+  public static getInstance(): PriceService {
+    if (!PriceService.instance) {
+      PriceService.instance = new PriceService();
     }
-    return MarketDataService.instance;
+    return PriceService.instance;
   }
 
   private cleanup() {
@@ -58,4 +58,4 @@ class MarketDataService {
   }
 }
 
-export default MarketDataService.getInstance();
+export default PriceService.getInstance();

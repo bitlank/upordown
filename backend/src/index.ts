@@ -1,5 +1,5 @@
 import express from 'express';
-import priceController from './controllers/price-controller.js';
+import priceController from './price/price-controller.js';
 import runMigrations from './db/db-migrations.js';
 import { initializePool } from './db/db-pool.js';
 
