@@ -16,7 +16,7 @@ describe('PriceService', () => {
     close: 105,
     volume: 1,
     openTime: now - 2000,
-    closeTime: now - 2000
+    closeTime: now - 2000,
   };
 
   beforeEach(async () => {
@@ -35,10 +35,10 @@ describe('PriceService', () => {
     fetchPrice = vi.fn().mockResolvedValue([fakePriceRest]);
 
     vi.doMock('../../src/price/binance-service', () => ({
-        __esModule: true,
-        default: { fetchPrice: fetchPrice },
-        BinanceStream: BinanceStreamMock,
-      }));
+      __esModule: true,
+      default: { fetchPrice: fetchPrice },
+      BinanceStream: BinanceStreamMock,
+    }));
 
     PriceService = (await import('../../src/price/price-service')).default;
   });
@@ -65,7 +65,7 @@ describe('PriceService', () => {
       close: 205,
       volume: 2,
       openTime: fakePriceRest.openTime + 1000,
-      closeTime: fakePriceRest.closeTime + 1000
+      closeTime: fakePriceRest.closeTime + 1000,
     };
     priceHandler(fakePriceStream);
 

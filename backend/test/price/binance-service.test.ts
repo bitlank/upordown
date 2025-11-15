@@ -9,14 +9,23 @@ describe('BinanceService.fetchPrice', () => {
   it('parses klines array response into PriceData', async () => {
     const fakeKlines = [
       [
-        1600000000000, '100.0', '110.0', '90.0', '105.0', '123.4', 1600000001000
-      ]
+        1600000000000,
+        '100.0',
+        '110.0',
+        '90.0',
+        '105.0',
+        '123.4',
+        1600000001000,
+      ],
     ];
 
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve(fakeKlines),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(fakeKlines),
+      }),
+    );
 
     const svc = new BinanceService();
     const prices = await svc.fetchPrice('BTCUSDT', 1);
@@ -28,24 +37,32 @@ describe('BinanceService.fetchPrice', () => {
   });
 
   it('throws an error for a non-ok response', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: false,
-      status: 404,
-      statusText: 'Not Found',
-      text: () => Promise.resolve('Not Found'),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        text: () => Promise.resolve('Not Found'),
+      }),
+    );
 
     const svc = new BinanceService();
     await expect(svc.fetchPrice('BTCUSDT', 1)).rejects.toThrow();
   });
 
   it('throws an error for an empty klines array', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve([]),
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      }),
+    );
 
     const svc = new BinanceService();
-    await expect(svc.fetchPrice('BTCUSDT', 1)).rejects.toThrow('Invalid response for BTCUSDT');
+    await expect(svc.fetchPrice('BTCUSDT', 1)).rejects.toThrow(
+      'Invalid response for BTCUSDT',
+    );
   });
 });

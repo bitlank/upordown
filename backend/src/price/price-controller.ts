@@ -26,7 +26,10 @@ router.get('/:ticker/history', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Limit must be between 1 and 120' });
   }
 
-  const history = await PriceService.getHistoricalPrices(ticker.toUpperCase(), limit);
+  const history = await PriceService.getHistoricalPrices(
+    ticker.toUpperCase(),
+    limit,
+  );
   res.json(history);
 });
 

@@ -16,7 +16,7 @@ const migrations = [
     GRANT SELECT, INSERT, UPDATE, DELETE
     ON ${dbConfig.dbName}.*
     TO '${dbConfig.appUser}'@'%';
-  `
+  `,
 ];
 
 async function setUpMigrationsTable(conn: Connection): Promise<boolean> {

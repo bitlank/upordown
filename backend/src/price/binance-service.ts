@@ -2,21 +2,21 @@ import WebSocket from 'ws';
 import { PriceData } from '@shared/api-interfaces';
 
 interface BinanceKline {
-  t: number;    // Kline start time
-  T: number;    // Kline close time
-  s: string;    // Symbol
-  i: string;    // Interval
-  o: string;    // Open price
-  h: string;    // High price
-  l: string;    // Low price
-  c: string;    // Close price
-  v: string;    // Volume
+  t: number; // Kline start time
+  T: number; // Kline close time
+  s: string; // Symbol
+  i: string; // Interval
+  o: string; // Open price
+  h: string; // High price
+  l: string; // Low price
+  c: string; // Close price
+  v: string; // Volume
 }
 
 interface BinanceKlineMessage {
-  e: string;    // Event type
-  E: number;    // Event time
-  s: string;    // Symbol
+  e: string; // Event type
+  E: number; // Event time
+  s: string; // Symbol
   k: BinanceKline;
 }
 
@@ -26,7 +26,8 @@ export class BinanceStream {
   private subscriptionIds: Map<string, number> = new Map();
   private nextSubscriptionId = 1;
   private readonly handler: (price: PriceData) => void;
-  private readonly websocketUrl: string = 'wss://data-stream.binance.vision:443/ws';
+  private readonly websocketUrl: string =
+    'wss://data-stream.binance.vision:443/ws';
 
   public constructor(handler: (price: PriceData) => void, wsUrl?: string) {
     this.handler = handler;
@@ -44,7 +45,7 @@ export class BinanceStream {
       close: Number(kline.c),
       volume: Number(kline.v),
       openTime: kline.t,
-      closeTime: kline.T
+      closeTime: kline.T,
     };
   }
 
@@ -55,7 +56,7 @@ export class BinanceStream {
       this.ws = undefined;
       this.wsPromise = undefined;
       this.subscriptionIds.clear();
-    }
+    };
 
     if (this.wsPromise) {
       this.wsPromise.then(closeWs);
@@ -132,11 +133,13 @@ export class BinanceStream {
       const ws = await this.ensureConnection();
       const id = this.nextSubscriptionId++;
 
-      ws.send(JSON.stringify({
-        method: 'SUBSCRIBE',
-        params: [`${ticker.toLowerCase()}@kline_1s`],
-        id: id,
-      }));
+      ws.send(
+        JSON.stringify({
+          method: 'SUBSCRIBE',
+          params: [`${ticker.toLowerCase()}@kline_1s`],
+          id: id,
+        }),
+      );
 
       this.subscriptionIds.set(ticker, id);
     } catch (error) {
@@ -152,11 +155,13 @@ export class BinanceStream {
     }
 
     try {
-      this.ws.send(JSON.stringify({
-        method: 'UNSUBSCRIBE',
-        params: [`${ticker.toLowerCase()}@kline_1s`],
-        id: id,
-      }));
+      this.ws.send(
+        JSON.stringify({
+          method: 'UNSUBSCRIBE',
+          params: [`${ticker.toLowerCase()}@kline_1s`],
+          id: id,
+        }),
+      );
 
       this.subscriptionIds.delete(ticker);
 
@@ -213,12 +218,14 @@ export class BinanceService {
   public async fetchPrice(ticker: string, limit: number): Promise<PriceData[]> {
     const normalizedTicker = ticker.toUpperCase();
     const response = await fetch(
-      `${this.restUrl}/klines?symbol=${normalizedTicker}&interval=1s&limit=1`
+      `${this.restUrl}/klines?symbol=${normalizedTicker}&interval=1s&limit=1`,
     );
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Failed to fetch price for ${normalizedTicker}: ${response.status} ${response.statusText} - ${errorBody}`);
+      throw new Error(
+        `Failed to fetch price for ${normalizedTicker}: ${response.status} ${response.statusText} - ${errorBody}`,
+      );
     }
 
     const klines = await response.json();
@@ -237,7 +244,7 @@ export class BinanceService {
         close: Number(close),
         volume: Number(volume),
         openTime: Number(openTime),
-        closeTime: Number(closeTime)
+        closeTime: Number(closeTime),
       };
       prices.push(price);
     }

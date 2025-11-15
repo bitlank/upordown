@@ -78,10 +78,12 @@ export class MockWebSocketServer {
       new Promise<void>((resolve) => {
         this.connectionResolve = resolve;
       }),
-      new Promise<never>((_, reject) => setTimeout(() => {
+      new Promise<never>((_, reject) =>
+        setTimeout(() => {
           this.connectionResolve = undefined;
           reject(new Error('Timeout waiting for connection'));
-      }, 5000))
+        }, 5000),
+      ),
     ]);
   }
 
@@ -95,10 +97,12 @@ export class MockWebSocketServer {
       new Promise<any>((resolve) => {
         this.messageResolve = resolve;
       }),
-      new Promise<never>((_, reject) => setTimeout(() => {
+      new Promise<never>((_, reject) =>
+        setTimeout(() => {
           this.messageResolve = undefined;
           reject(new Error('Timeout waiting for message'));
-      }, 5000))
+        }, 5000),
+      ),
     ]);
   }
 
@@ -107,10 +111,12 @@ export class MockWebSocketServer {
       new Promise<void>((resolve) => {
         this.closeResolve = resolve;
       }),
-      new Promise<never>((_, reject) => setTimeout(() => {
+      new Promise<never>((_, reject) =>
+        setTimeout(() => {
           this.closeResolve = undefined;
           reject(new Error('Timeout waiting for close'));
-      }, 5000))
+        }, 5000),
+      ),
     ]);
   }
 }
