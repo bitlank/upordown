@@ -1,4 +1,5 @@
 import express from 'express';
+import morgan from 'morgan';
 import priceController from './price/price-controller.js';
 import runMigrations from './db/db-migrations.js';
 import { initializePool } from './db/db-pool.js';
@@ -8,6 +9,8 @@ await initializePool();
 
 const app = express();
 const port = process.env.LISTEN_PORT || 3000;
+
+app.use(morgan('tiny'));
 
 // Add CORS headers for development
 app.use((_req, res, next) => {
@@ -33,7 +36,7 @@ app.use(
     res: express.Response,
     _next: express.NextFunction,
   ) => {
-    console.error(err.stack);
+    console.error('Error:', err);
     res.status(500).json({ error: 'Oops!' });
   },
 );
