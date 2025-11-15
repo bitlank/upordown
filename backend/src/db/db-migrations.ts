@@ -17,6 +17,13 @@ const migrations = [
     ON ${dbConfig.dbName}.*
     TO '${dbConfig.appUser}'@'%';
   `,
+  `
+    CREATE TABLE users (
+      user_id INT PRIMARY KEY AUTO_INCREMENT,
+      created_at DATETIME NOT NULL,
+      score INT NOT NULL
+    );
+  `,
 ];
 
 async function setUpMigrationsTable(conn: Connection): Promise<boolean> {

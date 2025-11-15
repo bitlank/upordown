@@ -1,6 +1,7 @@
 import express from 'express';
 import morgan from 'morgan';
 import priceController from './price/price-controller.js';
+import { authController, authMiddleware } from './user/auth.js';
 import runMigrations from './db/db-migrations.js';
 import { initializePool } from './db/db-pool.js';
 
@@ -27,7 +28,8 @@ app.get('/', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-app.use('/price', priceController);
+app.use('/auth', authController);
+app.use('/price', authMiddleware, priceController);
 
 app.use(
   (

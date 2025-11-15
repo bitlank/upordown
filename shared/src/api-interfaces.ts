@@ -8,3 +8,8 @@ export interface PriceData {
   openTime: number;
   closeTime: number;
 }
+
+export interface ApiUser {
+  createdAt: number;
+  score: number;
+}

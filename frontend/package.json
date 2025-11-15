@@ -10,9 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "shared": "file:../shared",
+    "@types/js-cookie": "^3.0.6",
+    "js-cookie": "^3.0.5",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "shared": "file:../shared"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
