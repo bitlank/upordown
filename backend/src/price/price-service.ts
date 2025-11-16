@@ -1,17 +1,36 @@
+import { PriceData } from './types';
 import binanceService, { BinanceStream } from './binance-service.js';
-import { PriceData } from '@shared/api-interfaces';
+
+class PriceCache {
+  private price?: PriceData;
+
+  public add(price: PriceData) {
+    if (!this.price || this.price.openAt <= price.openAt) {
+      this.price = price;
+    }
+  }
+
+  public get(openAt?: number): PriceData | null {
+    if (this.price && (!openAt || this.price.openAt == openAt)) {
+      return this.price;
+    }
+    return null;
+  }
+}
 
 class PriceService {
   private static instance: PriceService;
-  private readonly lastAccessTime: Map<string, number> = new Map();
-  private readonly prices: Map<string, PriceData> = new Map();
+  private readonly lastAccessAt: Map<string, number> = new Map();
+  private readonly priceCache: Map<string, PriceCache> = new Map();
   private readonly timeoutMillis = 5 * 60 * 1000;
   private readonly binanceStream = new BinanceStream((price: PriceData) => {
-    if (
-      price.closeTime > (this.prices.get(price.ticker)?.closeTime || 0) &&
-      this.lastAccessTime.has(price.ticker)
-    ) {
-      this.prices.set(price.ticker, price);
+    const delay = Date.now() - (price.openAt + 1000);
+
+    console.log(
+      `Price data message for ${price.ticker} ${price.openAt} received with a delay of ${delay} ms`,
+    );
+    if (this.lastAccessAt.has(price.ticker)) {
+      this.priceCache.get(price.ticker)?.add(price);
     }
   });
 
@@ -28,30 +47,59 @@ class PriceService {
 
   private cleanup() {
     const now = Date.now();
-    for (const [ticker, lastAccessTime] of this.lastAccessTime.entries()) {
-      if (now - lastAccessTime > this.timeoutMillis) {
+    for (const [ticker, lastAccessAt] of this.lastAccessAt.entries()) {
+      if (now - lastAccessAt > this.timeoutMillis) {
         this.binanceStream.unsubscribePrice(ticker);
-        this.lastAccessTime.delete(ticker);
-        this.prices.delete(ticker);
+        this.lastAccessAt.delete(ticker);
+        this.priceCache.delete(ticker);
         console.log(`Unsubscribed from inactive ticker: ${ticker}`);
       }
     }
   }
 
-  public async getCurrentPrice(ticker: string): Promise<PriceData> {
-    this.lastAccessTime.set(ticker, Date.now());
+  private addToCache(ticker: string, price: PriceData) {
+    let cache = this.priceCache.get(ticker);
+    if (!cache) {
+      cache = new PriceCache();
+      this.priceCache.set(ticker, cache);
+    }
 
-    const cached = this.prices.get(ticker);
-    if (cached && Date.now() - cached.closeTime < 5000) {
+    cache.add(price);
+  }
+
+  private getFromCache(ticker: string, openAt?: number): PriceData | null {
+    return this.priceCache.get(ticker)?.get(openAt) || null;
+  }
+
+  public async getPrice(ticker: string, openAt?: number): Promise<PriceData> {
+    const now = Date.now();
+    this.lastAccessAt.set(ticker, now);
+
+    const openAtNormalized = openAt
+      ? (Math.trunc(openAt / 1000) - 1) * 1000
+      : openAt;
+    const cached = this.getFromCache(ticker, openAtNormalized);
+    if (cached && (openAt || now - cached.openAt < 3000)) {
       return cached;
     }
 
     this.binanceStream.subscribePrice(ticker);
 
-    console.log(`Fetching current price for ${ticker} from REST API`);
-    const prices = await binanceService.fetchPrice(ticker, 1);
+    const prices = await binanceService.fetchPrice({
+      ticker,
+      startAt: openAtNormalized,
+      limit: 1,
+    });
+
     const price = prices[0];
-    this.prices.set(ticker, price);
+    if (!price) {
+      throw new Error(
+        `Fetched empty price data for ${ticker} ${openAtNormalized || ''} at ${now}`,
+      );
+    }
+    this.addToCache(ticker, price);
+
+    console.log(`Price data fetched for ${ticker} ${price.openAt} at ${now}`);
     return price;
   }
 
@@ -59,7 +107,7 @@ class PriceService {
     ticker: string,
     limit: number,
   ): Promise<PriceData[]> {
-    return [await this.getCurrentPrice(ticker)];
+    return [await this.getPrice(ticker)];
   }
 }
 

@@ -1,7 +1,7 @@
+import { PriceData } from './types';
 import WebSocket from 'ws';
-import { PriceData } from '@shared/api-interfaces';
 
-interface BinanceKline {
+interface BinanceKlineData {
   t: number; // Kline start time
   T: number; // Kline close time
   s: string; // Symbol
@@ -17,7 +17,7 @@ interface BinanceKlineMessage {
   e: string; // Event type
   E: number; // Event time
   s: string; // Symbol
-  k: BinanceKline;
+  k: BinanceKlineData;
 }
 
 export class BinanceStream {
@@ -36,7 +36,7 @@ export class BinanceStream {
     }
   }
 
-  private parseKlineData(kline: BinanceKline): PriceData {
+  private parseKlineData(kline: BinanceKlineData): PriceData {
     return {
       ticker: kline.s,
       open: Number(kline.o),
@@ -44,8 +44,8 @@ export class BinanceStream {
       low: Number(kline.l),
       close: Number(kline.c),
       volume: Number(kline.v),
-      openTime: kline.t,
-      closeTime: kline.T,
+      openAt: kline.t,
+      closeAt: kline.T,
     };
   }
 
@@ -198,6 +198,13 @@ export class BinanceStream {
   }
 }
 
+export interface FetchPriceParams {
+  ticker: string;
+  startAt?: number;
+  endAt?: number;
+  limit?: number;
+}
+
 export class BinanceService {
   private static instance: BinanceService;
   private readonly restUrl: string = 'https://data-api.binance.vision/api/v3';
@@ -215,12 +222,36 @@ export class BinanceService {
     return BinanceService.instance;
   }
 
-  public async fetchPrice(ticker: string, limit: number): Promise<PriceData[]> {
-    const normalizedTicker = ticker.toUpperCase();
-    const response = await fetch(
-      `${this.restUrl}/klines?symbol=${normalizedTicker}&interval=1s&limit=1`,
-    );
+  private parseRestKline(ticker: string, kline: any): PriceData {
+    const [openAt, open, high, low, close, volume, closeAt] = kline;
+    return {
+      ticker: ticker,
+      open: Number(open),
+      high: Number(high),
+      low: Number(low),
+      close: Number(close),
+      volume: Number(volume),
+      openAt: Number(openAt),
+      closeAt: Number(closeAt),
+    };
+  }
 
+  public async fetchPrice(fetchParams: FetchPriceParams): Promise<PriceData[]> {
+    const normalizedTicker = fetchParams.ticker.toUpperCase();
+    let queryParams = `interval=1s&symbol=${normalizedTicker}`;
+
+    if (fetchParams.startAt) {
+      queryParams = queryParams + `&startTime=${fetchParams.startAt}`;
+    }
+    if (fetchParams.endAt) {
+      queryParams = queryParams + `&endTime=${fetchParams.endAt}`;
+    }
+    if (fetchParams.limit) {
+      queryParams = queryParams + `&limit=${fetchParams.limit}`;
+    }
+
+    const url = `${this.restUrl}/klines?${queryParams}`;
+    const response = await fetch(url);
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(
@@ -229,25 +260,13 @@ export class BinanceService {
     }
 
     const klines = await response.json();
-    if (!Array.isArray(klines) || klines.length === 0) {
+    if (!Array.isArray(klines)) {
       throw new Error(`Invalid response for ${normalizedTicker}`);
     }
 
-    const prices: PriceData[] = [];
-    for (const kline of klines) {
-      const [openTime, open, high, low, close, volume, closeTime] = kline;
-      const price: PriceData = {
-        ticker: normalizedTicker,
-        open: Number(open),
-        high: Number(high),
-        low: Number(low),
-        close: Number(close),
-        volume: Number(volume),
-        openTime: Number(openTime),
-        closeTime: Number(closeTime),
-      };
-      prices.push(price);
-    }
+    const prices = klines.map((kline) =>
+      this.parseRestKline(normalizedTicker, kline),
+    );
     return prices;
   }
 }

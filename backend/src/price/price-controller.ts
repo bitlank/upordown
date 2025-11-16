@@ -1,20 +1,32 @@
-import { Router } from 'express';
-import type { Request, Response } from 'express';
+import { PriceData } from './types';
 import PriceService from './price-service.js';
+import { ApiPriceData } from '@shared/api-interfaces';
+import { Router, Request, Response } from 'express';
 
-const router = Router();
+function toApiPriceData(priceData: PriceData): ApiPriceData {
+  return {
+    ticker: priceData.ticker,
+    open: priceData.open,
+    high: priceData.high,
+    low: priceData.low,
+    close: priceData.close,
+    volume: priceData.volume,
+    openAt: new Date(priceData.openAt),
+    closeAt: new Date(priceData.closeAt),
+  };
+}
 
-router.get('/:ticker/current', async (req: Request, res: Response) => {
+async function routeGetPriceCurrent(req: Request, res: Response) {
   const ticker = req.params.ticker;
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
 
-  const priceData = await PriceService.getCurrentPrice(ticker.toUpperCase());
-  res.json(priceData);
-});
+  const priceData = await PriceService.getPrice(ticker.toUpperCase());
+  res.json(toApiPriceData(priceData));
+}
 
-router.get('/:ticker/history', async (req: Request, res: Response) => {
+async function routeGetPriceHistory(req: Request, res: Response) {
   const { ticker } = req.params;
   const limit = req.query.limit ? parseInt(req.query.limit as string) : 120;
 
@@ -30,7 +42,10 @@ router.get('/:ticker/history', async (req: Request, res: Response) => {
     ticker.toUpperCase(),
     limit,
   );
-  res.json(history);
-});
+  res.json(history.map((priceData) => toApiPriceData(priceData)));
+}
 
-export default router;
+const priceController = Router();
+priceController.get('/:ticker/current', routeGetPriceCurrent);
+priceController.get('/:ticker/history', routeGetPriceHistory);
+export default priceController;

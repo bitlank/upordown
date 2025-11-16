@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import type { PriceData } from '@shared/api-interfaces';
-import { fetchCurrentPrice } from '../api/price';
+import type { ApiPriceData } from '@shared/api-interfaces';
+import { fetchCurrentPrice } from '../api/price.js';
 
 const MainPanel: React.FC = () => {
-  const [price, setPrice] = useState<PriceData | null>(null);
+  const [price, setPrice] = useState<ApiPriceData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    const poll = async () => {
+    const pollPrice = async () => {
       try {
         const price = await fetchCurrentPrice('BTCUSDT');
         if (mounted) {
@@ -20,11 +20,11 @@ const MainPanel: React.FC = () => {
         setLoading(false);
       }
     };
-    poll();
-    const interval = setInterval(poll, 1000);
+    pollPrice();
+    const priceInterval = setInterval(pollPrice, 1000);
     return () => {
       mounted = false;
-      clearInterval(interval);
+      clearInterval(priceInterval);
     };
   }, []);
 

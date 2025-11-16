@@ -28,12 +28,26 @@ describe('BinanceService.fetchPrice', () => {
     );
 
     const svc = new BinanceService();
-    const prices = await svc.fetchPrice('BTCUSDT', 1);
+    const prices = await svc.fetchPrice({ ticker: 'BTCUSDT', limit: 1 });
 
     expect(prices).toHaveLength(1);
     const p = prices[0];
     expect(p.ticker).toBe('BTCUSDT');
     expect(p.close).toBe(105.0);
+  });
+
+  it('returns empty result for an empty klines array', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      }),
+    );
+
+    const svc = new BinanceService();
+    const prices = await svc.fetchPrice({ ticker: 'BTCUSDT', limit: 1 });
+    expect(prices).toHaveLength(0);
   });
 
   it('throws an error for a non-ok response', async () => {
@@ -48,21 +62,23 @@ describe('BinanceService.fetchPrice', () => {
     );
 
     const svc = new BinanceService();
-    await expect(svc.fetchPrice('BTCUSDT', 1)).rejects.toThrow();
+    await expect(
+      svc.fetchPrice({ ticker: 'BTCUSDT', limit: 1 }),
+    ).rejects.toThrow();
   });
 
-  it('throws an error for an empty klines array', async () => {
+  it('throws an error for an invalid response', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve([]),
+        json: () => Promise.resolve({}),
       }),
     );
 
     const svc = new BinanceService();
-    await expect(svc.fetchPrice('BTCUSDT', 1)).rejects.toThrow(
-      'Invalid response for BTCUSDT',
-    );
+    await expect(
+      svc.fetchPrice({ ticker: 'BTCUSDT', limit: 1 }),
+    ).rejects.toThrow(Error);
   });
 });

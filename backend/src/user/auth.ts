@@ -1,5 +1,5 @@
 import { getEnvOrThrow } from '../utils.js';
-import { createUser } from './user-repository.js';
+import { createUser, getUser } from './user-repository.js';
 import jwt from 'jsonwebtoken';
 import {
   CookieOptions,
@@ -83,11 +83,18 @@ export function authMiddleware(
 
 async function routePostUserLogin(req: Request, res: Response) {
   let userId = parseAndVerifyToken(req.headers.cookie);
-  if (userId === null) {
+  if (userId) {
+    if (!await getUser(userId)) {
+      console.error(`Cannot find user #${userId}, creating new`)
+      userId = null;
+    }
+  }
+  if (!userId) {
     userId = await createNewUser();
-    if (userId === null) {
+    if (!userId) {
       return res.status(500).send({ error: 'Failed to create new user' });
     }
+    console.log(`User #${userId} created`);
   }
 
   const token = generateToken(userId);

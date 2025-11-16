@@ -19,7 +19,7 @@ const migrations = [
   `,
   `
     CREATE TABLE users (
-      user_id INT PRIMARY KEY AUTO_INCREMENT,
+      id INT PRIMARY KEY AUTO_INCREMENT,
       created_at DATETIME NOT NULL,
       score INT NOT NULL
     );
