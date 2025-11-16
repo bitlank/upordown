@@ -7,7 +7,7 @@ This project is a simple **web app** where users make short-term predictions (be
 The app consists of three main components:
 - **Frontend (FE)** — A React + TypeScript single-page interface
 - **Backend (BE)** — A Node.js + TypeScript REST API
-- **Database (DB)** — A simple SQL database (MariaDB initially, compatible with PostgreSQL)
+- **Database (DB)** — A simple SQL MariaDB database
 
 ---
 
@@ -37,13 +37,8 @@ The app lets users:
 - If incorrect:
   - Score −= 1
 
----
+### UI
 
-## Architecture
-
-### Frontend
-
-- **Stack:** React + TypeScript + Vite
 - **UI Components:**
   - **Left Panel:**
     - Top: User’s **Name** (editable; nice to have) and **Score**
@@ -62,6 +57,8 @@ The app lets users:
 - **Authorization** JWT token is stored as an HTTP cookie
 
 ---
+
+## Architecture
 
 ### API
 
@@ -86,9 +83,23 @@ JWT tokens are used for identifying the user
 - The frontend includes the `token` cookie in all subsequent requests
 - The backend ensures that the `token` is valid and uses it to identify the user
 
+### Frontend
+
+- **Stack:**
+  - Framework: React
+  - Language: TypeScript
+  - Development: Vite
+
 ### Backend
 
-- **Stack:** Node.js + TypeScript
+- **Stack:**
+  - Language: TypeScript
+  - Runtime: Node.js
+  - Web framework: Express
+  - Testing framework: Vitest
+  - Formatting: Prettier
+  - DB migrations: roll my own
+  - ORM: none
 
 - **Authentication**
   - The `POST /auth` endpoint creates a user and sets their `token` in a cookie
@@ -98,7 +109,7 @@ JWT tokens are used for identifying the user
   - `token` signature is validated by the backend using the secret; an error is returned if the signature is invalid
   - The user is identified based on the `user_id` in the token
 
-- **Price Service:**
+- **Prices:**
   - Fetches 1s granularity price data using **Binance API**
   - Caches data for the last 120 seconds
   - Returns current or historical data
@@ -106,13 +117,13 @@ JWT tokens are used for identifying the user
   - Uses the **Candlestick Stream Websocket API** for current price requests
   - The websocket session is closed if no current price request arrives in the last 5 minutes
 
-- **Business Logic:**
+- **Bets:**
   - Bets are stored in the `bets` table
   - `POST /bet` performs an insertion
   - Resolution time is calculated by adding one minute to the current time, then rounding up to `:00` seconds
   - A unique open bet constraint is enforced via the DB
 
-- **Bet Resolution Service**
+- **Bet Resolution**
   - A worker task runs in the background
   - Wakes up every minute at the :00 second mark
   - Reads open bets from the `bets` table
@@ -121,9 +132,19 @@ JWT tokens are used for identifying the user
   - Updates the status and resolution time in the `bets` table
   - Sleeps until the beginning of the next minute after wakeup
 
----
+- **Database Migrations**
 
-### Database Schema
+  - A very simple migration runner job is executed on each startup
+  - It queries the latest applied migration from the `schema_history` table
+  - Applies missing migrations one by one
+  - Migration scripts are stored inline as multi-line string constants
+
+- **Database Queries**
+
+  - Queries are implemented in raw SQL without any ORM or query builder
+  - A connection pool is utilized with parameterized queries to avoid SQL injections
+
+### Database schema
 
 **Table: `bets`**
 
@@ -155,24 +176,6 @@ JWT tokens are used for identifying the user
 |--------|------|-------------|
 | `migration_id` | INT (PRIMARY KEY AUTO INCREMENT) | Unique migration identifier |
 | `applied_at` | DATETIME | Timestamp when the migration was applied |
-
----
-
-### Database Access
-
-**Migrations**
-
-- A very simple migration runner job is executed on each startup
-  - It queries the latest applied migration from the `schema_history` table
-  - Applies missing migrations one by one
-  - Migration scripts are stored inline as multi-line string constants
-
-**Queries**
-
--Queries are implemented in raw SQL without any ORM or query builder
--A connection pool is utilized with parameterized queries to avoid SQL injections
-
----
 
 ## Deployment
 
