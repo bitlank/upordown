@@ -56,15 +56,18 @@ function parseAndVerifyToken(cookieHeader?: string): number | null {
   }
 }
 
-async function createNewUser(): Promise<number | null> {
-  let userId: number | null = null;
-  try {
-    userId = await createUser();
-    return userId;
-  } catch (err) {
-    console.error('Error creating new user:', err);
-    return null;
+async function findOrCreateUser(id: number | null): Promise<number> {
+  let userId = id;
+  if (userId) {
+    if (await getUser(userId)) {
+      return userId;
+    }
+    console.log(`Cannot find user #${userId}, creating new`);
   }
+
+  userId = await createUser();
+  console.log(`User #${userId} created`);
+  return userId;
 }
 
 export function authMiddleware(
@@ -83,18 +86,11 @@ export function authMiddleware(
 
 async function routePostUserLogin(req: Request, res: Response) {
   let userId = parseAndVerifyToken(req.headers.cookie);
-  if (userId) {
-    if (!(await getUser(userId))) {
-      console.error(`Cannot find user #${userId}, creating new`);
-      userId = null;
-    }
-  }
-  if (!userId) {
-    userId = await createNewUser();
-    if (!userId) {
-      return res.status(500).send({ error: 'Failed to create new user' });
-    }
-    console.log(`User #${userId} created`);
+
+  try {
+    userId = await findOrCreateUser(userId);
+  } catch (err) {
+    return res.status(500).send({ error: 'Failed to get or create user' });
   }
 
   const token = generateToken(userId);

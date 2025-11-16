@@ -6,9 +6,9 @@ export async function createUser(connection?: Connection): Promise<number> {
   const conn = connection ? connection : getPool();
   const [result] = await conn.execute<ResultSetHeader>(
     `
-    INSERT INTO users (created_at, score)
-    VALUES (?, ?)
-  `,
+      INSERT INTO users (created_at, score)
+      VALUES (?, ?)
+    `,
     [new Date(), 0],
   );
 
@@ -22,10 +22,10 @@ export async function getUser(
   const conn = connection ? connection : getPool();
   const [[row]] = await conn.execute<RowDataPacket[]>(
     `
-    SELECT *
-    FROM users
-    WHERE id = ?
-  `,
+      SELECT *
+      FROM users
+      WHERE id = ?
+    `,
     [userId],
   );
 
@@ -33,7 +33,11 @@ export async function getUser(
     return null;
   }
 
-  return { id: row.id, createdAt: row.created_at, score: row.score };
+  return {
+    id: Number(row.id),
+    createdAt: (row.created_at as Date).getTime(),
+    score: Number(row.score),
+  };
 }
 
 export async function updateUserScore(
@@ -44,9 +48,9 @@ export async function updateUserScore(
   const conn = connection ? connection : getPool();
   const [result] = await conn.execute<ResultSetHeader>(
     `
-    UPDATE users
-    SET score = score + ?
-    WHERE id = ?
+      UPDATE users
+      SET score = score + ?
+      WHERE id = ?
     `,
     [amount, userId],
   );

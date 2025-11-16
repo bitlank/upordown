@@ -3,7 +3,11 @@ import type { ApiBet, ApiPriceData } from '@shared/api-interfaces';
 import { fetchCurrentPrice } from '../api/price.js';
 import { getOpenBets, placeBet } from '../api/bet.js';
 
-const MainPanel: React.FC = () => {
+interface MainPanelProps {
+  onBetResolved: () => void;
+}
+
+const MainPanel: React.FC<MainPanelProps> = ({ onBetResolved }) => {
   const [price, setPrice] = useState<ApiPriceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [openBet, setOpenBet] = useState<ApiBet | null>(null);
@@ -11,6 +15,9 @@ const MainPanel: React.FC = () => {
   const fetchOpenBet = async () => {
     try {
       const bets = await getOpenBets();
+      if (openBet && bets.length === 0) {
+        onBetResolved();
+      }
       setOpenBet(bets.length > 0 ? bets[0] : null);
     } catch {
       setOpenBet(null);

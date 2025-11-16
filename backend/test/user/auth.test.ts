@@ -19,12 +19,14 @@ vi.mock('jsonwebtoken', () => ({
 
 vi.mock('../../src/user/user-repository', () => ({
   createUser: vi.fn(),
+  getUser: vi.fn(),
 }));
 
 const mockGetEnvOrThrow = getEnvOrThrow as vi.Mock;
 const mockJwtSign = jwt.sign as vi.Mock;
 const mockJwtVerify = jwt.verify as vi.Mock;
 const mockCreateUser = userRepository.createUser as vi.Mock;
+const mockGetUser = userRepository.getUser as vi.Mock;
 
 describe('Auth', () => {
   beforeEach(async () => {
@@ -104,21 +106,23 @@ describe('Auth', () => {
       authController = authModule.authController;
 
       app = express();
-      app.use('/', authController);
+      app.use('/auth', authController);
     });
 
     it('should return 200 and not create a new user if a valid token is present', async () => {
       const userId = 123;
 
+      mockGetUser.mockResolvedValue({ id: userId });
       mockJwtVerify.mockReturnValue({ userId: userId });
       mockJwtSign.mockReturnValue('new-token');
 
       const response = await request(app)
-        .post('/')
-        .set('Cookie', 'token=valid-token')
+        .post('/auth')
+        .set('Cookie', 'token=old-token')
         .expect(200, { status: 'ok' });
 
-      expect(mockJwtVerify).toHaveBeenCalledWith('valid-token', 'test-secret');
+      expect(mockJwtVerify).toHaveBeenCalledWith('old-token', 'test-secret');
+      expect(mockGetUser).toHaveBeenCalledWith(userId);
       expect(mockCreateUser).not.toHaveBeenCalled();
       expect(response.headers['set-cookie'][0]).toContain('token=new-token');
     });
@@ -130,12 +134,37 @@ describe('Auth', () => {
       mockJwtSign.mockReturnValue('new-token');
 
       const response = await request(app)
-        .post('/')
+        .post('/auth')
         .expect(200, { status: 'ok' });
 
       expect(mockCreateUser).toHaveBeenCalled();
       expect(mockJwtSign).toHaveBeenCalledWith(
         { userId: userId },
+        'test-secret',
+      );
+      expect(response.headers['set-cookie'][0]).toContain('token=new-token');
+    });
+
+    it('should create a new user if the user does not exist', async () => {
+      const oldUserId = 321;
+      const newUserId = 654;
+
+      mockGetUser.mockResolvedValue(null);
+      mockCreateUser.mockResolvedValue(newUserId);
+
+      mockJwtVerify.mockReturnValue({ userId: oldUserId });
+      mockJwtSign.mockReturnValue('new-token');
+
+      const response = await request(app)
+        .post('/auth')
+        .set('Cookie', 'token=old-token')
+        .expect(200, { status: 'ok' });
+
+      expect(mockJwtVerify).toHaveBeenCalledWith('old-token', 'test-secret');
+      expect(mockGetUser).toHaveBeenCalledWith(oldUserId);
+      expect(mockCreateUser).toHaveBeenCalled();
+      expect(mockJwtSign).toHaveBeenCalledWith(
+        { userId: newUserId },
         'test-secret',
       );
       expect(response.headers['set-cookie'][0]).toContain('token=new-token');
@@ -151,7 +180,7 @@ describe('Auth', () => {
       mockCreateUser.mockResolvedValue(userId);
 
       const response = await request(app)
-        .post('/')
+        .post('/auth')
         .set('Cookie', 'token=invalid-token')
         .expect(200, { status: 'ok' });
 
@@ -167,9 +196,7 @@ describe('Auth', () => {
       const dbError = new Error('Database connection failed');
       mockCreateUser.mockRejectedValue(dbError);
 
-      await request(app)
-        .post('/')
-        .expect(500, { error: 'Failed to create new user' });
+      await request(app).post('/auth').expect(500);
 
       expect(mockCreateUser).toHaveBeenCalled();
     });

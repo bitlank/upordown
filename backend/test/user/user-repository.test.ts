@@ -45,14 +45,14 @@ describe('User Repository', () => {
 
   describe('getUser', () => {
     it('should return the user if user is found', async () => {
-      const mockRow = { id: 1, created_at: Date.now(), score: 100 };
+      const mockRow = { id: 1, created_at: new Date(), score: 100 };
       mockExecute.mockResolvedValue([[mockRow]]);
 
       const user = await getUser(1);
 
       expect(user).not.toBeNull();
       expect(user?.id).toBe(mockRow.id);
-      expect(user?.createdAt).toBe(mockRow.created_at);
+      expect(user?.createdAt).toBe(mockRow.created_at.getTime());
       expect(user?.score).toBe(mockRow.score);
     });
 

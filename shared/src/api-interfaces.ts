@@ -10,7 +10,7 @@ export interface ApiPriceData {
 }
 
 export interface ApiUser {
-  createdAt: number;
+  createdAt: Date;
   score: number;
 }
 
