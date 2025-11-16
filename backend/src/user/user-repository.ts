@@ -14,3 +14,42 @@ export async function createUser(connection?: Connection): Promise<number> {
 
   return result.insertId;
 }
+
+export async function getUser(
+  userId: number,
+  connection?: Connection,
+): Promise<User | null> {
+  const conn = connection ? connection : getPool();
+  const [[row]] = await conn.execute<RowDataPacket[]>(
+    `
+    SELECT *
+    FROM users
+    WHERE id = ?
+  `,
+    [userId],
+  );
+
+  if (!row) {
+    return null;
+  }
+
+  return { id: row.id, createdAt: row.created_at, score: row.score };
+}
+
+export async function updateUserScore(
+  userId: number,
+  amount: number,
+  connection?: Connection,
+): Promise<boolean> {
+  const conn = connection ? connection : getPool();
+  const [result] = await conn.execute<ResultSetHeader>(
+    `
+    UPDATE users
+    SET score = score + ?
+    WHERE id = ?
+    `,
+    [amount, userId],
+  );
+
+  return (result.affectedRows || 0) === 1;
+}

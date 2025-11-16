@@ -71,6 +71,7 @@ The app lets users:
   | `POST` | `/user/name` | Sets the user name (nice to have) |
   | `GET` | `/user/list` | Returns a list of users and their scores (nice to have) |
   | `GET` | `/bet/info` | Returns the supported tickers and the next bet timestamp |
+  | `GET` | `/bet/{ticker}/open` | Returns the user's open bets |
   | `POST` | `/bet/{ticker}/{short\|long}` | Creates a new bet |
   | `GET` | `/price/{ticker}/current` | Returns current price |
   | `GET` | `/price/{ticker}/history` | Returns OHLC price data for the last 120 seconds (nice to have) |
@@ -155,12 +156,14 @@ JWT tokens are used for identifying the user
 | `ticker` | VARCHAR | Ticker symbol (e.g., BTCUSDT) |
 | `opened_at` | DATETIME | Time when bet was opened |
 | `resolve_at` | DATETIME | Bet resolution time |
-| `direction` | ENUM('LONG','SHORT') | Bet type |
+| `direction` | VARCHER ('long','short') | Bet type |
 | `open_price` | DECIMAL(10,4) | Price when bet was opened |
 | `resolution_price` | DECIMAL(10,4) (nullable) | Price at resolution |
-| `status` | ENUM('OPEN','WON','LOST') | Bet status |
-| **Indexes** | (`user_id`, `resolve_at` DESC) | For listing bets per user |
-| **Constraint** | UNIQUE INDEX (`user_id`, `ticker`) WHERE `status` = 'OPEN' | Ensures one active bet per ticker per user |
+| `status` | VARCHAR ('open','won','lost') | Bet status |
+| `open` | BOOLEAN | Generated column from status to be used in the unique constraint |
+| **Index** | (`user_id`, `status`) | For getting bets per user |
+| **Index** | (`status`, `resolve_at`) | For getting bets to resolve |
+| **Constraint** | UNIQUE INDEX (`user_id`, `ticker`, `open`) | Ensures one active bet per ticker per user |
 
 **Table: `users`**
 

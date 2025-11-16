@@ -1,5 +1,5 @@
 services:
-  db:
+  dev-db:
     image: mariadb:10.6
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
@@ -7,7 +7,7 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - db-data:/var/lib/mysql
+      - dev-db-data:/var/lib/mysql
 
 volumes:
-  db-data:
+  dev-db-data:

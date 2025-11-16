@@ -84,8 +84,8 @@ export function authMiddleware(
 async function routePostUserLogin(req: Request, res: Response) {
   let userId = parseAndVerifyToken(req.headers.cookie);
   if (userId) {
-    if (!await getUser(userId)) {
-      console.error(`Cannot find user #${userId}, creating new`)
+    if (!(await getUser(userId))) {
+      console.error(`Cannot find user #${userId}, creating new`);
       userId = null;
     }
   }

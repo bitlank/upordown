@@ -13,3 +13,29 @@ export interface ApiUser {
   createdAt: number;
   score: number;
 }
+
+export interface ApiBetInfo {
+  tickers: string[];
+  nextResolveAt: Date;
+}
+
+export enum BetDirection {
+  Long = "long",
+  Short = "short",
+}
+
+export enum BetStatus {
+  Open = "open",
+  Won = "won",
+  Lost = "lost",
+}
+
+export interface ApiBet {
+  ticker: string;
+  openedAt: Date;
+  resolveAt: Date;
+  direction: BetDirection;
+  openPrice: number;
+  resolutionPrice: number | null;
+  status: BetStatus;
+}
