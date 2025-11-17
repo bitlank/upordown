@@ -5,18 +5,18 @@ export interface ApiPriceData {
   low: number;
   close: number;
   volume: number;
-  openAt: Date;
-  closeAt: Date;
+  openAt: number;
+  closeAt: number;
 }
 
 export interface ApiUser {
-  createdAt: Date;
+  createdAt: number;
   score: number;
 }
 
 export interface ApiBetInfo {
   tickers: string[];
-  nextResolveAt: Date;
+  nextResolveAt: number;
 }
 
 export enum BetDirection {
@@ -32,8 +32,8 @@ export enum BetStatus {
 
 export interface ApiBet {
   ticker: string;
-  openedAt: Date;
-  resolveAt: Date;
+  openedAt: number;
+  resolveAt: number;
   direction: BetDirection;
   openPrice: number;
   resolutionPrice: number | null;

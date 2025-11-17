@@ -111,7 +111,7 @@ async function resolveBets() {
 export function getBetInfo(): ApiBetInfo {
   return {
     tickers: SUPPORTED_TICKERS,
-    nextResolveAt: new Date(getNextResolveAt(Date.now())),
+    nextResolveAt: getNextResolveAt(Date.now()),
   };
 }
 

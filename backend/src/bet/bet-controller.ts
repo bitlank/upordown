@@ -8,8 +8,8 @@ import { parseEnum } from 'src/utils';
 function toApiBet(bet: Bet): ApiBet {
   return {
     ticker: bet.ticker,
-    openedAt: new Date(bet.openedAt),
-    resolveAt: new Date(bet.resolveAt),
+    openedAt: bet.openedAt,
+    resolveAt: bet.resolveAt,
     direction: bet.direction,
     openPrice: bet.openPrice,
     resolutionPrice: bet.resolutionPrice,

@@ -12,8 +12,8 @@ function toApiPriceData(priceData: PriceData): ApiPriceData {
     low: priceData.low,
     close: priceData.close,
     volume: priceData.volume,
-    openAt: new Date(priceData.openAt),
-    closeAt: new Date(priceData.closeAt),
+    openAt: priceData.openAt,
+    closeAt: priceData.closeAt,
   };
 }
 
