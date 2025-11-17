@@ -127,6 +127,7 @@ const App: React.FC = () => {
   const [score, setScore] = useState<number>(0);
   const [tickers, setTickers] = useState<string[]>([]);
   const [currentTicker, setCurrentTicker] = useState<string | null>(null);
+  const [nextResolve, setNextResolve] = useState<number | null>(null);
   const [openBet, setOpenBet] = useState<ApiBet | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [recentPrices, setRecentPrices] = useState<ApiPriceData[]>([]);
@@ -160,21 +161,39 @@ const App: React.FC = () => {
     initSession();
   }, []);
 
+  const loadTickers = useCallback(async () => {
+    const info = await getBetInfo();
+    if (info?.tickers?.length) {
+      setTickers(info.tickers);
+      setCurrentTicker(info.tickers[0]);
+    }
+    if (info?.nextResolveAt) {
+      setNextResolve(info.nextResolveAt);
+    }
+  }, []);
+
   useEffect(() => {
-    if (!isAuthReady) {
+    if (!isAuthReady) return;
+    loadTickers();
+  }, [loadTickers, isAuthReady]);
+
+  useEffect(() => {
+    if (!nextResolve) return;
+
+    const now = Date.now();
+    const delay = nextResolve - now;
+
+    if (delay <= 0) {
+      loadTickers();
       return;
     }
 
-    const loadTickers = async () => {
-      const info = await getBetInfo();
-      if (info && info.tickers && info.tickers.length > 0) {
-        setTickers(info.tickers);
-        setCurrentTicker(info.tickers[0]);
-      }
-    };
+    const timer = setTimeout(() => {
+      loadTickers();
+    }, delay);
 
-    loadTickers();
-  }, [isAuthReady]);
+    return () => clearTimeout(timer);
+  }, [nextResolve, loadTickers]);
 
   const updatePrice = useCallback(async () => {
     if (!currentTicker) return;
@@ -249,19 +268,25 @@ const App: React.FC = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString('en-US', { hour12: false }));
 
+      let remaining = 0;
       if (openBet) {
-        const remaining = openBet.resolveAt - Date.now();
-        if (remaining <= 0) {
-          setTimer('0:00');
-        } else {
-          const sec = Math.ceil(remaining / 1000);
-          setTimer(`${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`);
-        }
+        remaining = openBet.resolveAt - Date.now();
+      } else if (nextResolve) {
+        remaining = nextResolve - Date.now();
+      }
+
+      if (remaining <= 0) {
+        setTimer('0:00');
+      } else {
+        const remainingSec = Math.ceil(remaining / 1000);
+        const mins = Math.floor(remainingSec / 60);
+        const secs = remainingSec % 60;
+        setTimer(`${mins}:${secs.toString().padStart(2, '0')}`);
       }
     }, 1000);
 
     return () => clearInterval(tickClock);
-  }, [openBet]);
+  }, [nextResolve, openBet?.resolveAt]);
 
   // --- Actions ---
   const handlePlaceBet = async (direction: BetDirection) => {
@@ -358,25 +383,20 @@ const App: React.FC = () => {
               <p className="text-sm font-semibold text-gray-400 mb-1">Time</p>
               <p className="text-2xl font-mono text-gray-200 mb-4">{currentTime}</p>
 
+              <div className="mt-4 p-3 bg-gray-700 rounded-lg text-center">
+                <p className="text-xs text-gray-400 uppercase tracking-wider">Resolution In</p>
+                <p className={`text-3xl font-extrabold ${openBet ? 'text-yellow-300' : 'text-gray-400'}`}>{timer || ''}</p>
+              </div>
+
               {/* Active Bet Status */}
               {openBet && (
                 <div className="mt-4 pt-4 border-t border-gray-700 animate-fade-in">
                   <p className="text-sm font-semibold text-gray-400">Active Position</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className={`text-lg font-bold flex items-center gap-2 ${openBet.direction === BetDirection.Long ? 'text-green-500' : 'text-red-500'}`}>
-                      {openBet.direction === 'long' ? (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M14.414 7l-3.293-3.293a1 1 0 010-1.414l.707-.707a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-.707-.707a1 1 0 010-1.414L14.414 9H3a1 1 0 110-2h11.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                      ) : (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.586 13l3.293 3.293a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0l.707.707a1 1 0 010 1.414L5.586 11H17a1 1 0 110 2H5.586z" clipRule="evenodd" fillRule="evenodd"></path></svg>
-                      )}
                       {openBet.direction.toUpperCase()}
                     </span>
-                    <span className="text-sm text-gray-400 font-mono">@ ${usdFormatter.format(openBet.openPrice)}</span>
-                  </div>
-
-                  <div className="mt-4 p-3 bg-gray-700 rounded-lg text-center">
-                    <p className="text-xs text-gray-400 uppercase tracking-wider">Resolution In</p>
-                    <p className="text-3xl font-extrabold text-yellow-300">{timer}</p>
+                    <span className="text-sm text-gray-400 font-mono">{usdFormatter.format(openBet.openPrice)}</span>
                   </div>
                 </div>
               )}
