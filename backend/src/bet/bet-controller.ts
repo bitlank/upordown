@@ -1,9 +1,9 @@
 import { Bet } from './types';
 import { getBetInfo, placeBet } from './bet-service.js';
 import { findBets } from './bet-repository.js';
+import { parseEnum } from '../utils.js';
 import { ApiBet, BetDirection, BetStatus } from '@shared/api-interfaces';
 import { Router, Request, Response } from 'express';
-import { parseEnum } from 'src/utils';
 
 function toApiBet(bet: Bet): ApiBet {
   return {

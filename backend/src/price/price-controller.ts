@@ -1,8 +1,8 @@
 import { PriceData } from './types';
 import PriceService from './price-service.js';
+import { SUPPORTED_TICKERS } from '../bet/bet-service.js';
 import { ApiPriceData } from '@shared/api-interfaces';
 import { Router, Request, Response } from 'express';
-import { SUPPORTED_TICKERS } from 'src/bet/bet-service';
 
 function toApiPriceData(priceData: PriceData): ApiPriceData {
   return {
