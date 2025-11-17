@@ -15,7 +15,7 @@ async function fetchApi(
   };
 
   let retry = true;
-  for (let attempt = 0; retry; attempt++) {
+  for (let attempt = 0; ; attempt++) {
     retry = attempt < 3;
 
     try {

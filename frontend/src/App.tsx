@@ -10,7 +10,6 @@ import {
   BetDirection,
   type ApiBet,
   type ApiPriceData,
-  type ApiUser,
 } from "@shared/api-interfaces";
 import { getUser, login } from "./api/user";
 import { getBetInfo, getOpenBets, placeBet } from "./api/bet";
@@ -356,7 +355,7 @@ const App: React.FC = () => {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="flex items-center">
             <select
-              value={currentTicker}
+              value={currentTicker || ""}
               onChange={(e) => {
                 setCurrentTicker(e.target.value);
                 setOpenBet(null);
@@ -389,7 +388,7 @@ const App: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Chart */}
           <div className="lg:col-span-3 bg-gray-800 p-1 rounded-xl shadow-2xl h-[400px] md:h-[600px] overflow-hidden relative">
-            {recentPrices.length > 0 ? (
+            {recentPrices.length > 0 && currentTicker ? (
               <ChartComponent
                 data={recentPrices}
                 bet={openBet}
