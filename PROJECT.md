@@ -90,6 +90,7 @@ JWT tokens are used for identifying the user
   - Framework: React
   - Language: TypeScript
   - Development: Vite
+  - Chart: TradingView Lightweight
 
 ### Backend
 

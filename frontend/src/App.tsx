@@ -1,36 +1,386 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { login, getUser } from './api/user';
-import LeftPanel from './components/LeftPanel';
-import MainPanel from './components/MainPanel';
-import BottomPanel from './components/BottomPanel';
-import './App.css';
+import React, { useState, useEffect, useRef } from 'react';
+import { CandlestickSeries, ColorType, createChart } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, CandlestickData, Time } from 'lightweight-charts';
+import { BetDirection, type ApiBet, type ApiPriceData, type ApiUser } from '@shared/api-interfaces';
+import { getUser, login } from './api/user';
+import { getBetInfo, getOpenBets, placeBet } from './api/bet';
+import { fetchPriceHistory } from './api/price';
 
-const App: React.FC = () => {
-  const authenticated = useRef(false);
-  const [user, setUser] = useState({ score: 0 });
 
+interface Message {
+  text: string;
+  color: 'red' | 'green' | 'gray';
+}
+
+// --- Components ---
+
+interface ChartProps {
+  data: ApiPriceData[];
+  bet: ApiBet | null;
+  ticker: string;
+}
+
+const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const betLineRef = useRef<any>(null);
+
+  // Initialize Chart
   useEffect(() => {
-    if (!authenticated.current) {
-      login().then(() => {
-        getUser().then(setUser);
-      });
-      authenticated.current = true;
+    if (!chartContainerRef.current || chartRef.current) {
+      return;
     }
+
+    const chart = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#1F2937' }, // gray-800
+        textColor: '#9CA3AF', // gray-400
+        attributionLogo: false,
+      },
+      grid: {
+        vertLines: { color: '#374151' }, // gray-700
+        horzLines: { color: '#374151' },
+      },
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: true,
+        borderColor: '#4B5563',
+      },
+      rightPriceScale: {
+        borderColor: '#4B5563',
+      },
+    });
+
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#10B981',   // emerald-500
+      downColor: '#EF4444', // red-500
+      borderVisible: false,
+      wickUpColor: '#10B981',
+      wickDownColor: '#EF4444',
+    });
+
+    chartRef.current = chart;
+    seriesRef.current = candlestickSeries;
+
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+          height: chartContainerRef.current.clientHeight
+        });
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      chart.remove();
+      chartRef.current = null;
+    };
   }, []);
 
-  const updateUser = () => {
-    getUser().then(setUser);
+  // Update Data
+  useEffect(() => {
+    if (seriesRef.current && data.length > 0) {
+      // TradingView expects timestamps in seconds (Time type)
+      const formattedData: CandlestickData<Time>[] = data.map(d => ({
+        time: Math.floor(d.openAt / 1000) as Time,
+        open: d.open,
+        high: d.high,
+        low: d.low,
+        close: d.close,
+      }));
+
+      // Deduplicate and Sort
+      const uniqueData = formattedData
+        .filter((v, i, a) => a.findIndex(t => t.time === v.time) === i)
+        .sort((a, b) => (a.time as number) - (b.time as number));
+
+      seriesRef.current.setData(uniqueData);
+    }
+  }, [data]);
+
+  // Update Bet Line
+  useEffect(() => {
+    if (!seriesRef.current) return;
+
+    if (betLineRef.current) {
+      seriesRef.current.removePriceLine(betLineRef.current);
+      betLineRef.current = null;
+    }
+
+    if (bet) {
+      betLineRef.current = seriesRef.current.createPriceLine({
+        price: bet.openPrice,
+        color: '#FCD34D', // yellow-300
+        lineWidth: 2,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: `BET ${bet.direction.toUpperCase()}`,
+      });
+    }
+  }, [bet]);
+
+  return <div ref={chartContainerRef} className="w-full h-full" />;
+};
+
+const App: React.FC = () => {
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [score, setScore] = useState<number>(0);
+  const [tickers, setTickers] = useState<string[]>([]);
+  const [currentTicker, setCurrentTicker] = useState<string | null>(null);
+  const [openBet, setOpenBet] = useState<ApiBet | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [marketHistory, setMarketHistory] = useState<ApiPriceData[]>([]);
+  const [timer, setTimer] = useState<string>('0:00');
+  const [currentTime, setCurrentTime] = useState<string>('00:00:00');
+  const [message, setMessage] = useState<Message | null>(null);
+
+
+  const updateUser = async() => {
+    const userData = await getUser();
+    if (userData) {
+      setScore(userData.score);
+    }
   };
 
+  useEffect(() => {
+    const initSession = async () => {
+      if (isAuthReady) {
+        return;
+      }
+
+      try {
+        await login();
+        setIsAuthReady(true);
+        await updateUser();
+      } catch (Err) {
+        console.error("Failed to create session:", Err);
+        showMessage('Authentication failed', 'red');
+      }
+    };
+
+    initSession();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthReady) {
+      return;
+    }
+
+    const loadTickers = async () => {
+      const info = await getBetInfo();
+      if (info && info.tickers && info.tickers.length > 0) {
+        setTickers(info.tickers);
+        setCurrentTicker(info.tickers[0]);
+      }
+    };
+
+    loadTickers();
+  }, [isAuthReady]);
+
+  useEffect(() => {
+    if (!isAuthReady || !currentTicker) {
+      return;
+    }
+
+    const updatePrice = async () => {
+      const histData = await fetchPriceHistory(currentTicker, 120);
+      if (histData) {
+        setMarketHistory(histData);
+        setCurrentPrice(histData[histData.length - 1].close);
+      }
+    };
+
+    const updateBet = async () => {
+      const bets = await getOpenBets();
+      const currentBet = bets
+        .filter((bet) => bet.ticker === currentTicker)
+        .pop();
+
+      if (currentBet) {
+        setOpenBet(currentBet);
+      } else if (openBet) {
+        setOpenBet(null);
+        await updateUser();
+        showMessage('Bet Resolved! Score updated.', 'gray');
+      }
+    };
+
+    updatePrice();
+    updateBet();
+
+    const priceInterval = setInterval(updatePrice, 1000);
+    const betInterval = setInterval(updateBet, 5000);
+
+    return () => {
+      clearInterval(priceInterval);
+      clearInterval(betInterval);
+    };
+  }, [isAuthReady, currentTicker, openBet]);
+
+  // Clock & Timer Loop (UI only, no network)
+  useEffect(() => {
+    const tickClock = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-US', { hour12: false }));
+
+      if (openBet) {
+        const remaining = openBet.resolveAt - Date.now();
+        if (remaining <= 0) {
+          setTimer('0:00');
+        } else {
+          const sec = Math.ceil(remaining / 1000);
+          setTimer(`${Math.floor(sec / 60)}:${(sec % 60).toString().padStart(2, '0')}`);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(tickClock);
+  }, [openBet]);
+
+  // --- Actions ---
+  const handlePlaceBet = async (direction: BetDirection) => {
+    try {
+      if (!currentTicker) {
+        return;
+      }
+
+      const bet = await placeBet(currentTicker, direction);
+      if (bet) {
+        setOpenBet(bet)
+        await updateUser();
+      }
+    } catch (e) {
+      console.error(e);
+      showMessage('Failed to place bet', 'red');
+    }
+  };
+
+  const showMessage = (text: string, color: 'red' | 'green' | 'gray') => {
+    setMessage({ text, color });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const usdFormatter = new Intl.NumberFormat(navigator.language, {
+    style: 'currency',
+    currency: 'USD',
+  });
+
+  const getScoreColor = () => {
+    if (score > 1000) return 'text-green-500';
+    if (score < 0) return 'text-red-500';
+    return 'text-yellow-300';
+  };
+
+  if (!isAuthReady) {
+    return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Connecting...</div>;
+  }
+
   return (
-    <div className="app-container">
-      <aside className="left-panel">
-        <LeftPanel score={user.score} />
-      </aside>
-      <main className="main-panel">
-        <MainPanel onBetResolved={updateUser} />
-        <BottomPanel />
-      </main>
+    <div className="min-h-screen bg-gray-900 text-gray-100 font-sans p-4 md:p-8">
+
+      {/* Notification Toast */}
+      {message && (
+        <div className={`fixed inset-x-0 top-0 p-4 text-center font-bold text-white z-50 transition-all shadow-xl bg-${message.color === 'red' ? 'red' : message.color === 'green' ? 'green' : 'gray'}-600`}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="max-w-7xl mx-auto">
+
+        {/* Header */}
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+          <div className="flex items-center">
+            <select
+              value={currentTicker}
+              onChange={(e) => { setCurrentTicker(e.target.value); setOpenBet(null); }}
+              className="bg-gray-700 text-white text-3xl md:text-5xl font-extrabold p-2 rounded-lg focus:ring-emerald-500 focus:outline-none mr-4"
+            >
+              {tickers.length > 0 ? tickers.map(t => <option key={t} value={t}>{t}</option>) : <option>Loading...</option>}
+            </select>
+          </div>
+
+          <div className="mt-4 md:mt-0 text-right">
+            <p className="text-lg text-gray-400">Score</p>
+            <p className={`text-4xl font-bold transition-colors ${getScoreColor()}`}>
+              {score.toLocaleString()}
+            </p>
+          </div>
+        </header>
+
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+          {/* Chart */}
+          <div className="lg:col-span-3 bg-gray-800 p-1 rounded-xl shadow-2xl h-[400px] md:h-[600px] overflow-hidden relative">
+            {marketHistory.length > 0 ? (
+              <ChartComponent data={marketHistory} bet={openBet} ticker={currentTicker} />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">Loading Market Data...</div>
+            )}
+          </div>
+
+          {/* Sidebar Controls */}
+          <div className="lg:col-span-1 flex flex-col space-y-6">
+
+            {/* Info Card */}
+            <div className="bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-emerald-500">
+              <p className="text-sm font-semibold text-gray-400 mb-1">Price</p>
+              <p className="text-4xl font-extrabold text-white mb-4">
+                {currentPrice ? usdFormatter.format(currentPrice) : ''}
+              </p>
+
+              <p className="text-sm font-semibold text-gray-400 mb-1">Time</p>
+              <p className="text-2xl font-mono text-gray-200 mb-4">{currentTime}</p>
+
+              {/* Active Bet Status */}
+              {openBet && (
+                <div className="mt-4 pt-4 border-t border-gray-700 animate-fade-in">
+                  <p className="text-sm font-semibold text-gray-400">Active Position</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-lg font-bold flex items-center gap-2 ${openBet.direction === BetDirection.Long ? 'text-green-500' : 'text-red-500'}`}>
+                      {openBet.direction === 'long' ? (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M14.414 7l-3.293-3.293a1 1 0 010-1.414l.707-.707a1 1 0 011.414 0l5 5a1 1 0 010 1.414l-5 5a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-.707-.707a1 1 0 010-1.414L14.414 9H3a1 1 0 110-2h11.414z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                      ) : (
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5.586 13l3.293 3.293a1 1 0 010 1.414l-.707.707a1 1 0 01-1.414 0l-5-5a1 1 0 010-1.414l5-5a1 1 0 011.414 0l.707.707a1 1 0 010 1.414L5.586 11H17a1 1 0 110 2H5.586z" clipRule="evenodd" fillRule="evenodd"></path></svg>
+                      )}
+                      {openBet.direction.toUpperCase()}
+                    </span>
+                    <span className="text-sm text-gray-400 font-mono">@ ${usdFormatter.format(openBet.openPrice)}</span>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-gray-700 rounded-lg text-center">
+                    <p className="text-xs text-gray-400 uppercase tracking-wider">Resolution In</p>
+                    <p className="text-3xl font-extrabold text-yellow-300">{timer}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            {!openBet && (
+              <div className="mt-auto flex flex-col space-y-4">
+                 <p className="text-center text-gray-400 text-sm">Place Bet</p>
+                <button
+                  onClick={() => handlePlaceBet(BetDirection.Long)}
+                  className="w-full p-4 rounded-xl text-2xl font-black shadow-lg transition-transform hover:scale-[1.02] bg-green-600 hover:bg-green-700 text-white ring-4 ring-green-500/50"
+                >
+                  LONG <span className="text-sm ml-2 font-normal opacity-75">(Bet Up)</span>
+                </button>
+                <button
+                  onClick={() => handlePlaceBet(BetDirection.Short)}
+                  className="w-full p-4 rounded-xl text-2xl font-black shadow-lg transition-transform hover:scale-[1.02] bg-red-600 hover:bg-red-700 text-white ring-4 ring-red-500/50"
+                >
+                  SHORT <span className="text-sm ml-2 font-normal opacity-75">(Bet Down)</span>
+                </button>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
