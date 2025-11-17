@@ -31,30 +31,35 @@ async function routeGetPriceCurrent(req: Request, res: Response) {
   res.json(toApiPriceData(priceData));
 }
 
-async function routeGetPriceHistory(req: Request, res: Response) {
-  const ticker = req.params.ticker;
-  const limit = req.query.limit ? parseInt(req.query.limit as string) : 120;
+async function routeGetPriceRecent(req: Request, res: Response) {
+  const tickerParam = req.params.ticker;
+  const ticker = tickerParam ? tickerParam.toUpperCase() : null;
 
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
-
   if (!SUPPORTED_TICKERS.includes(ticker)) {
     return res.status(400).json({ error: 'Unsupported ticker' });
   }
 
-  if (isNaN(limit) || !(limit >= 1 && limit <= 120)) {
-    return res.status(400).json({ error: 'Limit must be between 1 and 120' });
+  const startAtParam = req.params.startAt;
+  const startAt = startAtParam ? parseInt(startAtParam as string) : null;
+
+  if (!startAt || isNaN(startAt)) {
+    return res.status(400).json({ error: 'Invalid start at value' });
+  }
+  const startSince = Date.now() - startAt;
+  if (startSince < 0 || startSince > 2 * 60 * 1000) {
+    return res
+      .status(400)
+      .json({ error: 'Start at must fall within the last 2 minutes' });
   }
 
-  const history = await PriceService.getHistoricalPrices(
-    ticker.toUpperCase(),
-    limit,
-  );
+  const history = await PriceService.getRecentPrices(ticker, startAt);
   res.json(history.map((priceData) => toApiPriceData(priceData)));
 }
 
 const priceController = Router();
 priceController.get('/:ticker/current', routeGetPriceCurrent);
-priceController.get('/:ticker/history', routeGetPriceHistory);
+priceController.get('/:ticker/recent/:startAt', routeGetPriceRecent);
 export default priceController;

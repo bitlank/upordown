@@ -74,7 +74,7 @@ The app lets users:
   | `GET` | `/bet/{ticker}/open` | Returns the user's open bets |
   | `POST` | `/bet/{ticker}/{short\|long}` | Creates a new bet |
   | `GET` | `/price/{ticker}/current` | Returns current price |
-  | `GET` | `/price/{ticker}/history` | Returns OHLC price data for the last 120 seconds (nice to have) |
+  | `GET` | `/price/{ticker}/recent/{startAt}` | Returns OHLC price data for the last 120 seconds (nice to have) |
 
 ### Authentication Flow
 
@@ -114,8 +114,8 @@ JWT tokens are used for identifying the user
 - **Prices:**
   - Fetches 1s granularity price data using **Binance API**
   - Caches data for the last 120 seconds
-  - Returns current or historical data
-  - Uses the **Candlestick REST API** for historical price requests
+  - Returns current or recent data
+  - Uses the **Candlestick REST API** for recent price requests
   - Uses the **Candlestick Stream Websocket API** for current price requests
   - The websocket session is closed if no current price request arrives in the last 5 minutes
 

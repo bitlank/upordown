@@ -9,16 +9,17 @@ describe('PriceService', () => {
   let fetchPrice: any;
   const now = Date.now();
   const prevSecond = Math.trunc(now / 1000) * 1000;
+  const openAt = prevSecond - 1000;
 
-  const fakePriceRest: PriceData = {
+  const fakePrice: PriceData = {
     ticker: 'BTCUSDT',
     open: 100,
     high: 110,
     low: 90,
     close: 105,
     volume: 1,
-    openAt: prevSecond - 1000,
-    closeAt: prevSecond - 1,
+    openAt: openAt,
+    closeAt: openAt + 999,
   };
 
   beforeEach(async () => {
@@ -35,7 +36,7 @@ describe('PriceService', () => {
         };
       })));
 
-    fetchPrice = vi.fn().mockResolvedValue([fakePriceRest]);
+    fetchPrice = vi.fn().mockResolvedValue([fakePrice]);
 
     vi.doMock('../../src/price/binance-service', () => ({
       __esModule: true,
@@ -47,23 +48,23 @@ describe('PriceService', () => {
   });
 
   it('getPrice returns REST price, then uses cache', async () => {
-    const result = await PriceService.getPrice('BTCUSDT', now);
-    expect(result).toEqual(fakePriceRest);
+    const result = await PriceService.getPrice('BTCUSDT', openAt);
+    expect(result).toEqual(fakePrice);
     expect(fetchPrice).toHaveBeenCalledWith({
       ticker: 'BTCUSDT',
-      startAt: fakePriceRest.openAt,
+      startAt: openAt,
       limit: 1,
     });
     expect(subscribePrice).toHaveBeenCalled();
 
     fetchPrice.mockClear();
-    const result2 = await PriceService.getPrice('BTCUSDT', now);
-    expect(result2).toEqual(fakePriceRest);
+    const result2 = await PriceService.getPrice('BTCUSDT', openAt);
+    expect(result2).toEqual(fakePrice);
     expect(fetchPrice).not.toHaveBeenCalled();
   });
 
-  it('returns updated price after BinanceStream sends new price', async () => {
-    await PriceService.getPrice('BTCUSDT', now);
+  it('caches and returns price from BinanceStream', async () => {
+    await PriceService.getPrice('BTCUSDT', openAt);
 
     const fakePriceStream: PriceData = {
       ticker: 'BTCUSDT',
@@ -72,16 +73,14 @@ describe('PriceService', () => {
       low: 190,
       close: 205,
       volume: 2,
-      openAt: fakePriceRest.openAt + 1000,
-      closeAt: fakePriceRest.closeAt + 1000,
+      openAt: openAt + 1000,
+      closeAt: openAt + 1999,
     };
     priceHandler(fakePriceStream);
 
     fetchPrice.mockClear();
-    const result = await PriceService.getPrice('BTCUSDT', now + 1000);
+    const result = await PriceService.getPrice('BTCUSDT', openAt + 1000);
     expect(result).toEqual(fakePriceStream);
-    expect(result.close).not.toBe(fakePriceRest.close);
-    expect(result.closeAt).not.toBe(fakePriceRest.closeAt);
     expect(fetchPrice).not.toHaveBeenCalled();
     expect(subscribePrice).toHaveBeenCalled();
   });

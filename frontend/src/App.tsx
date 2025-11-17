@@ -4,7 +4,7 @@ import type { IChartApi, ISeriesApi, CandlestickData, Time } from 'lightweight-c
 import { BetDirection, type ApiBet, type ApiPriceData, type ApiUser } from '@shared/api-interfaces';
 import { getUser, login } from './api/user';
 import { getBetInfo, getOpenBets, placeBet } from './api/bet';
-import { fetchPriceHistory } from './api/price';
+import { fetchRecentPrices } from './api/price';
 
 
 interface Message {
@@ -83,21 +83,18 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
   // Update Data
   useEffect(() => {
     if (seriesRef.current && data.length > 0) {
-      // TradingView expects timestamps in seconds (Time type)
       const formattedData: CandlestickData<Time>[] = data.map(d => ({
         time: Math.floor(d.openAt / 1000) as Time,
-        open: d.open,
-        high: d.high,
-        low: d.low,
-        close: d.close,
+        open: Number(d.open),
+        high: Number(d.high),
+        low: Number(d.low),
+        close: Number(d.close),
       }));
 
-      // Deduplicate and Sort
-      const uniqueData = formattedData
-        .filter((v, i, a) => a.findIndex(t => t.time === v.time) === i)
-        .sort((a, b) => (a.time as number) - (b.time as number));
+      const sortedData = formattedData
+        .sort((a, b) => (a.time as number) - (b.time as number))
 
-      seriesRef.current.setData(uniqueData);
+      seriesRef.current.setData(sortedData);
     }
   }, [data]);
 
@@ -112,7 +109,7 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
 
     if (bet) {
       betLineRef.current = seriesRef.current.createPriceLine({
-        price: bet.openPrice,
+        price: Number(bet.openPrice),
         color: '#FCD34D', // yellow-300
         lineWidth: 2,
         lineStyle: 2, // Dashed
@@ -132,11 +129,10 @@ const App: React.FC = () => {
   const [currentTicker, setCurrentTicker] = useState<string | null>(null);
   const [openBet, setOpenBet] = useState<ApiBet | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
-  const [marketHistory, setMarketHistory] = useState<ApiPriceData[]>([]);
+  const [recentPrices, setRecentPrices] = useState<ApiPriceData[]>([]);
   const [timer, setTimer] = useState<string>('0:00');
   const [currentTime, setCurrentTime] = useState<string>('00:00:00');
   const [message, setMessage] = useState<Message | null>(null);
-
 
   const updateUser = async() => {
     const userData = await getUser();
@@ -186,10 +182,10 @@ const App: React.FC = () => {
     }
 
     const updatePrice = async () => {
-      const histData = await fetchPriceHistory(currentTicker, 120);
-      if (histData) {
-        setMarketHistory(histData);
-        setCurrentPrice(histData[histData.length - 1].close);
+      const prices = await fetchRecentPrices(currentTicker, (Math.trunc(Date.now() / 1000) - 60) * 1000);
+      if (prices) {
+        setRecentPrices(prices);
+        setCurrentPrice(prices[prices.length - 1].close);
       }
     };
 
@@ -315,8 +311,8 @@ const App: React.FC = () => {
 
           {/* Chart */}
           <div className="lg:col-span-3 bg-gray-800 p-1 rounded-xl shadow-2xl h-[400px] md:h-[600px] overflow-hidden relative">
-            {marketHistory.length > 0 ? (
-              <ChartComponent data={marketHistory} bet={openBet} ticker={currentTicker} />
+            {recentPrices.length > 0 ? (
+              <ChartComponent data={recentPrices} bet={openBet} ticker={currentTicker} />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">Loading Market Data...</div>
             )}
