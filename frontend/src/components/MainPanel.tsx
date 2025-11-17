@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import type { ApiBet, ApiPriceData } from '@shared/api-interfaces';
+import type { ApiBet, ApiPriceData, BetDirection } from '@shared/api-interfaces';
 import { fetchCurrentPrice } from '../api/price.js';
 import { getOpenBets, placeBet } from '../api/bet.js';
 
@@ -49,7 +49,7 @@ const MainPanel: React.FC<MainPanelProps> = ({ onBetResolved }) => {
     };
   }, []);
 
-  const handlePlaceBet = async (direction: 'long' | 'short') => {
+  const handlePlaceBet = async (direction: BetDirection) => {
     try {
       await placeBet('BTCUSDT', direction);
       fetchOpenBet();

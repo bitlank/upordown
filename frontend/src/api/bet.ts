@@ -1,17 +1,14 @@
-import type { Bet } from '../../../backend/src/bet/bet-repository';
+import type { ApiBet, ApiBetInfo, BetDirection } from "@shared/api-interfaces";
+import { fetchJson } from "./fetch";
 
-export async function getBetInfo(): Promise<{ supportedTickers: string[]; nextBetTimestamp: Date }> {
-  const response = await fetch('/api/bet/info');
-  return response.json();
+export async function getBetInfo(): Promise<ApiBetInfo> {
+  return await fetchJson('/bet/info');
 }
 
-export async function getOpenBets(): Promise<Bet[]> {
-  const response = await fetch('/api/bet/open');
-  return response.json();
+export async function getOpenBets(): Promise<ApiBet[]> {
+  return await fetchJson('/bet/open');
 }
 
-export async function placeBet(ticker: string, direction: 'long' | 'short'): Promise<void> {
-  await fetch(`/api/bet/${ticker}/${direction}`, {
-    method: 'POST',
-  });
+export async function placeBet(ticker: string, direction: BetDirection): Promise<ApiBet> {
+  return await fetchJson(`/bet/${ticker}/${direction}`, 'POST');
 }

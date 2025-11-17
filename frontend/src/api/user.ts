@@ -1,14 +1,10 @@
 import type { ApiUser } from '@shared/api-interfaces';
+import { fetchEmpty, fetchJson } from './fetch';
 
 export async function getUser(): Promise<ApiUser> {
-  const response = await fetch('/api/user');
-  return response.json();
+  return await fetchJson('/user');
 }
 
 export async function login(): Promise<void> {
-  const response = await fetch('/api/auth', {
-    method: 'POST',
-  });
-  const data = await response.json();
-  localStorage.setItem('token', data.token);
+  await fetchEmpty('/auth', 'POST');
 }
