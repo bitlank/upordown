@@ -5,8 +5,6 @@ services:
       context: .
     ports:
       - "8080:80"
-    environment:
-      - BACKEND_HOST=backend
     networks:
       - frontend
     depends_on:
