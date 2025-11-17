@@ -1,12 +1,12 @@
 import { Bet } from './types';
-import { createBet, getBets, updateBet } from './bet-repository.js';
+import { createBet, findBets, getBet, updateBet } from './bet-repository.js';
 import { updateUserScore } from '../user/user-repository.js';
 import priceService from '../price/price-service.js';
 import { groupBy } from '../utils.js';
 import { getPool } from '../db/db-pool.js';
 import { ApiBetInfo, BetDirection, BetStatus } from '@shared/api-interfaces';
 
-const SUPPORTED_TICKERS = ['BTCUSDT'];
+export const SUPPORTED_TICKERS = ['BTCUSDT'];
 const MINUTE_IN_MILLIS = 60 * 1000;
 const RESULUTION_JOB_DELAY = 500;
 

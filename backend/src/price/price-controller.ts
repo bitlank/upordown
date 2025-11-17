@@ -2,6 +2,7 @@ import { PriceData } from './types';
 import PriceService from './price-service.js';
 import { ApiPriceData } from '@shared/api-interfaces';
 import { Router, Request, Response } from 'express';
+import { SUPPORTED_TICKERS } from 'src/bet/bet-service';
 
 function toApiPriceData(priceData: PriceData): ApiPriceData {
   return {
@@ -22,16 +23,24 @@ async function routeGetPriceCurrent(req: Request, res: Response) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
 
+  if (!SUPPORTED_TICKERS.includes(ticker)) {
+    return res.status(400).json({ error: 'Unsupported ticker' });
+  }
+
   const priceData = await PriceService.getPrice(ticker.toUpperCase());
   res.json(toApiPriceData(priceData));
 }
 
 async function routeGetPriceHistory(req: Request, res: Response) {
-  const { ticker } = req.params;
+  const ticker = req.params.ticker;
   const limit = req.query.limit ? parseInt(req.query.limit as string) : 120;
 
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
+  }
+
+  if (!SUPPORTED_TICKERS.includes(ticker)) {
+    return res.status(400).json({ error: 'Unsupported ticker' });
   }
 
   if (isNaN(limit) || !(limit >= 1 && limit <= 120)) {
