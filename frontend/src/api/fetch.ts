@@ -1,13 +1,16 @@
+const BASE_URL = "/api";
 
-const BASE_URL = '/api';
-
-async function fetchApi(endpoint: string, method: 'GET' | 'POST' = 'GET', body?: any): Promise<Response> {
+async function fetchApi(
+  endpoint: string,
+  method: "GET" | "POST" = "GET",
+  body?: any,
+): Promise<Response> {
   const url = `${BASE_URL}${endpoint}`;
 
   const options: RequestInit = {
     method,
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: body ? JSON.stringify(body) : null,
   };
 
@@ -20,7 +23,7 @@ async function fetchApi(endpoint: string, method: 'GET' | 'POST' = 'GET', body?:
 
       if (response.status === 401) {
         retry = false;
-        throw new Error('401 Unauthorized');
+        throw new Error("401 Unauthorized");
       }
 
       if (!response.ok) {
@@ -34,15 +37,16 @@ async function fetchApi(endpoint: string, method: 'GET' | 'POST' = 'GET', body?:
         throw error;
       }
 
-      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+      await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
   }
 }
 
 export async function fetchJson<T>(
   endpoint: string,
-  method: 'GET' | 'POST' = 'GET',
-  body?: any): Promise<T> {
+  method: "GET" | "POST" = "GET",
+  body?: any,
+): Promise<T> {
   const response = await fetchApi(endpoint, method, body);
 
   const text = await response.text();
@@ -55,9 +59,8 @@ export async function fetchJson<T>(
 
 export async function fetchEmpty(
   endpoint: string,
-  method: 'GET' | 'POST' = 'GET',
-  body?: any): Promise<void> {
+  method: "GET" | "POST" = "GET",
+  body?: any,
+): Promise<void> {
   await fetchApi(endpoint, method, body);
 }
-
-
