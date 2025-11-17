@@ -27,6 +27,12 @@ app.use((_req, res, next) => {
   next();
 });
 
+app.get('*', (_req, res, next) => {
+  // Cache GET responses for max 1 second
+  res.setHeader('Cache-Control', 'public, max-age=1, must-revalidate');
+  next();
+});
+
 // Health check endpoint
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
