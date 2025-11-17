@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { CandlestickSeries, ColorType, createChart } from 'lightweight-charts';
 import type { IChartApi, ISeriesApi, CandlestickData, Time } from 'lightweight-charts';
 import { BetDirection, type ApiBet, type ApiPriceData, type ApiUser } from '@shared/api-interfaces';
@@ -176,33 +176,41 @@ const App: React.FC = () => {
     loadTickers();
   }, [isAuthReady]);
 
-  useEffect(() => {
-    if (!isAuthReady || !currentTicker) {
-      return;
+  const updatePrice = useCallback(async () => {
+    if (!currentTicker) return;
+
+    const prices = await fetchRecentPrices(
+      currentTicker,
+      (Math.trunc(Date.now() / 1000) - 60) * 1000
+    );
+
+    if (prices && prices.length > 0) {
+      setRecentPrices(prices);
+      setCurrentPrice(prices[prices.length - 1].close);
     }
+  }, [currentTicker]);
 
-    const updatePrice = async () => {
-      const prices = await fetchRecentPrices(currentTicker, (Math.trunc(Date.now() / 1000) - 60) * 1000);
-      if (prices) {
-        setRecentPrices(prices);
-        setCurrentPrice(prices[prices.length - 1].close);
-      }
-    };
+  const updateBet = useCallback(async () => {
+    const bets = await getOpenBets();
+    const currentBet = bets.filter(b => b.ticker === currentTicker).pop();
 
-    const updateBet = async () => {
-      const bets = await getOpenBets();
-      const currentBet = bets
-        .filter((bet) => bet.ticker === currentTicker)
-        .pop();
-
+    setOpenBet(prev => {
       if (currentBet) {
-        setOpenBet(currentBet);
-      } else if (openBet) {
-        setOpenBet(null);
-        await updateUser();
-        showMessage('Bet Resolved! Score updated.', 'gray');
+        return currentBet;
       }
-    };
+
+      if (prev) {
+        updateUser();
+        showMessage("Bet Resolved! Score updated.", "gray");
+        return null;
+      }
+
+      return prev;
+    });
+  }, [currentTicker]);
+
+  useEffect(() => {
+    if (!isAuthReady || !currentTicker) return;
 
     updatePrice();
     updateBet();
@@ -214,7 +222,26 @@ const App: React.FC = () => {
       clearInterval(priceInterval);
       clearInterval(betInterval);
     };
-  }, [isAuthReady, currentTicker, openBet]);
+  }, [isAuthReady, currentTicker, updatePrice, updateBet]);
+
+  useEffect(() => {
+    if (!openBet || !openBet.resolveAt) return;
+
+    const now = Date.now();
+    const resolveAt = openBet.resolveAt;
+    const delay = resolveAt - now + 1000;
+
+    if (delay <= 0) {
+      updateBet();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      updateBet();
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [openBet?.resolveAt, updateBet]);
 
   // Clock & Timer Loop (UI only, no network)
   useEffect(() => {

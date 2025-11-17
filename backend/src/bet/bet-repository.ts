@@ -6,14 +6,14 @@ import { RowDataPacket, ResultSetHeader, Connection } from 'mysql2/promise';
 
 function mapBet(row: RowDataPacket): Bet {
   return {
-    id: row.id,
-    userId: row.user_id,
+    id: Number(row.id),
+    userId: Number(row.user_id),
     ticker: row.ticker,
     openedAt: (row.opened_at as Date).getTime(),
     resolveAt: (row.resolve_at as Date).getTime(),
     direction: parseEnumOrThrow(BetDirection, row.direction),
-    openPrice: row.open_price,
-    resolutionPrice: row.resolution_price,
+    openPrice: Number(row.open_price),
+    resolutionPrice: Number(row.resolution_price),
     status: parseEnumOrThrow(BetStatus, row.status),
   };
 }
@@ -75,7 +75,7 @@ export async function findBets(
   connection?: Connection,
 ): Promise<Bet[]> {
   let query: string[] = [];
-  let params = [];
+  const params = [];
 
   if (betQuery.userId) {
     query.push('user_id = ?');
