@@ -83,7 +83,7 @@ async function resolveBets() {
   const lastResolveAt = getNextMinute(Date.now(), -1);
 
   console.log(`Resolving bets at ${lastResolveAt}`);
-  const betsToResolve = await getBets({
+  const betsToResolve = await findBets({
     status: [BetStatus.Open],
     resolveAtMax: lastResolveAt,
   });
@@ -119,7 +119,7 @@ export async function placeBet(
   userId: number,
   ticker: string,
   direction: BetDirection,
-): Promise<void> {
+): Promise<Bet> {
   if (!SUPPORTED_TICKERS.includes(ticker)) {
     throw new Error('Unsupported ticker');
   }
@@ -128,7 +128,7 @@ export async function placeBet(
   const resolveAt = getNextResolveAt(openedAt);
   const openPrice = (await priceService.getPrice(ticker)).close;
 
-  const betId = await createBet(
+  const id = await createBet(
     userId,
     ticker,
     direction,
@@ -136,9 +136,13 @@ export async function placeBet(
     openedAt,
     resolveAt,
   );
+
+  const bet = await getBet(id);
   console.log(
-    `Placed bet #${betId}: ${direction} on ${ticker} resolving at ${resolveAt}`,
+    `Placed bet #${id}: ${bet.direction} on ${bet.ticker} resolving at ${bet.resolveAt}`,
   );
+
+  return bet;
 }
 
 class BetService {

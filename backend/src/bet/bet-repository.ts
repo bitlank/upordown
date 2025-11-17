@@ -4,8 +4,8 @@ import { parseEnumOrThrow } from 'src/utils.js';
 import { BetDirection, BetStatus } from '@shared/api-interfaces';
 import { RowDataPacket, ResultSetHeader, Connection } from 'mysql2/promise';
 
-function mapBets(rows: RowDataPacket[]): Bet[] {
-  const bets = rows.map((row) => ({
+function mapBet(row: RowDataPacket): Bet {
+  return {
     id: row.id,
     userId: row.user_id,
     ticker: row.ticker,
@@ -15,9 +15,7 @@ function mapBets(rows: RowDataPacket[]): Bet[] {
     openPrice: row.open_price,
     resolutionPrice: row.resolution_price,
     status: parseEnumOrThrow(BetStatus, row.status),
-  }));
-
-  return bets;
+  };
 }
 
 export async function createBet(
@@ -49,13 +47,30 @@ export async function createBet(
   return result.insertId;
 }
 
+export async function getBet(
+  id: number,
+  connection?: Connection,
+): Promise<Bet> {
+  const conn = connection ? connection : getPool();
+  const [rows] = await conn.execute<RowDataPacket[]>(
+    `
+      SELECT *
+      FROM bets
+      WHERE id = ?
+    `,
+    [id],
+  );
+
+  return mapBet(rows[0]);
+}
+
 export interface BetQuery {
   userId?: number;
   status?: BetStatus[];
   resolveAtMax?: number;
 }
 
-export async function getBets(
+export async function findBets(
   betQuery: BetQuery,
   connection?: Connection,
 ): Promise<Bet[]> {
@@ -89,7 +104,8 @@ export async function getBets(
     params,
   );
 
-  return mapBets(rows);
+  const bets = rows.map((row) => mapBet(row));
+  return bets;
 }
 
 export async function updateBet(
