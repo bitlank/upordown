@@ -106,7 +106,9 @@ class PriceService {
       } else {
         const cleanedUp = this.getCache(ticker)?.cleanup();
         if ((cleanedUp || 0) > 0) {
-          console.log(`Cleaned up ${cleanedUp} prices for ${ticker} from cache`);
+          console.log(
+            `Cleaned up ${cleanedUp} prices for ${ticker} from cache`,
+          );
         }
       }
     }

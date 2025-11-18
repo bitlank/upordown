@@ -50,9 +50,9 @@ async function routeGetPriceRecent(req: Request, res: Response) {
   }
   const startSince = Date.now() - startAt;
   if (startSince < 0 || startSince > PRICE_MAX_AGE_MINUTES * 60 * 1000) {
-    return res
-      .status(400)
-      .json({ error: `Start at must fall within the last ${PRICE_MAX_AGE_MINUTES} minutes`});
+    return res.status(400).json({
+      error: `Start at must fall within the last ${PRICE_MAX_AGE_MINUTES} minutes`,
+    });
   }
 
   const history = await PriceService.getRecentPrices(ticker, startAt);
