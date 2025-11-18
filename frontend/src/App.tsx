@@ -15,6 +15,8 @@ import { getUser, login } from "./api/user";
 import { getBetInfo, getOpenBets, placeBet } from "./api/bet";
 import { fetchRecentPrices } from "./api/price";
 
+const PRICE_MAX_AGE = 4 * 60 * 1000;
+
 interface Message {
   text: string;
   color: "red" | "green" | "gray";
@@ -99,11 +101,7 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
         close: Number(d.close),
       }));
 
-      const sortedData = formattedData.sort(
-        (a, b) => (a.time as number) - (b.time as number),
-      );
-
-      seriesRef.current.setData(sortedData);
+      seriesRef.current.setData(formattedData);
     }
   }, [data]);
 
@@ -207,16 +205,41 @@ const App: React.FC = () => {
   const updatePrice = useCallback(async () => {
     if (!currentTicker) return;
 
-    const prices = await fetchRecentPrices(
-      currentTicker,
-      (Math.trunc(Date.now() / 1000) - 60) * 1000,
-    );
+    const oldestPossibleTime = Math.trunc(Date.now() / 1000) * 1000 - PRICE_MAX_AGE;
+    let nextTime = 0
 
-    if (prices && prices.length > 0) {
-      setRecentPrices(prices);
-      setCurrentPrice(prices[prices.length - 1].close);
+    setRecentPrices(prev => {
+      nextTime = prev.length > 0 ? prev[prev.length - 1].openAt + 1000 : 0;
+      return prev;
+    });
+
+    const startAt = Math.max(nextTime, oldestPossibleTime);
+    const fetchedPrices = await fetchRecentPrices(currentTicker, startAt);
+
+    if (fetchedPrices && fetchedPrices.length > 0) {
+      setRecentPrices(prev => {
+        const newPrices = [...prev];
+        let latestPrice = newPrices[newPrices.length - 1];
+
+        for (const price of fetchedPrices) {
+          if (price.openAt > (latestPrice?.openAt || 0)) {
+            newPrices.push(price);
+            latestPrice = price;
+          }
+        }
+
+        setCurrentPrice(latestPrice?.close);
+
+        if (newPrices.length > PRICE_MAX_AGE / 1000 + 60) {
+          let deleteCount = 0;
+          for (; deleteCount < newPrices.length && newPrices[deleteCount].openAt < oldestPossibleTime; deleteCount++);
+          newPrices.splice(0, deleteCount);
+        }
+
+        return newPrices;
+      });
     }
-  }, [currentTicker]);
+  }, [currentTicker, fetchRecentPrices]);
 
   const updateBet = useCallback(async () => {
     const bets = await getOpenBets();
