@@ -352,9 +352,8 @@ const App: React.FC = () => {
     setTimeout(() => setMessage(null), 3000);
   };
 
-  const usdFormatter = new Intl.NumberFormat(navigator.language, {
-    style: "currency",
-    currency: "USD",
+  const priceFormatter = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits: 2,
   });
 
   const getScoreColor = () => {
@@ -439,7 +438,7 @@ const App: React.FC = () => {
             <div className="bg-gray-800 p-6 rounded-xl shadow-lg border-t-4 border-emerald-500">
               <p className="text-sm font-semibold text-gray-400 mb-1">Price</p>
               <p className="text-4xl font-extrabold text-white mb-4">
-                {currentPrice ? usdFormatter.format(currentPrice) : ""}
+                {currentPrice ? priceFormatter.format(currentPrice) : ""}
               </p>
 
               <p className="text-sm font-semibold text-gray-400 mb-1">Time</p>
@@ -471,7 +470,7 @@ const App: React.FC = () => {
                       {openBet.direction.toUpperCase()}
                     </span>
                     <span className="text-sm text-gray-400 font-mono">
-                      {usdFormatter.format(openBet.openPrice)}
+                      {priceFormatter.format(openBet.openPrice)}
                     </span>
                   </div>
                 </div>
