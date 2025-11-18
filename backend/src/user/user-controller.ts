@@ -1,6 +1,6 @@
 import { User } from './types';
-import { getUser } from './user-repository';
-import { ApiUser } from '@shared/api-interfaces';
+import { getUser } from './user-repository.js';
+import { ApiUser } from '@shared/api-interfaces.js';
 import { Request, Response, Router } from 'express';
 
 export const userRouter = Router();

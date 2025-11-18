@@ -1,5 +1,5 @@
 import { User } from './types';
-import { getPool } from '../db/db-pool';
+import { getPool } from '../db/db-pool.js';
 import { Connection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
 export async function createUser(connection?: Connection): Promise<number> {

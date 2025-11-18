@@ -1,7 +1,7 @@
 import { PriceData } from './types';
 import PriceService, { PRICE_MAX_AGE_MINUTES } from './price-service.js';
 import { SUPPORTED_TICKERS } from '../bet/bet-service.js';
-import { ApiPriceData } from '@shared/api-interfaces';
+import { ApiPriceData } from '@shared/api-interfaces.js';
 import { Router, Request, Response } from 'express';
 
 function toApiPriceData(priceData: PriceData): ApiPriceData {

@@ -4,7 +4,7 @@ import { updateUserScore } from '../user/user-repository.js';
 import priceService from '../price/price-service.js';
 import { groupBy } from '../utils.js';
 import { getPool } from '../db/db-pool.js';
-import { ApiBetInfo, BetDirection, BetStatus } from '@shared/api-interfaces';
+import { ApiBetInfo, BetDirection, BetStatus } from '@shared/api-interfaces.js';
 
 export const SUPPORTED_TICKERS = ['BTCUSDT'];
 const MINUTE_IN_MILLIS = 60 * 1000;
