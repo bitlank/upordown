@@ -7,6 +7,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc"
   }
 }

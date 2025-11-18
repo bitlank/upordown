@@ -3,9 +3,8 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
     "composite": true,
     "strict": true,
     "esModuleInterop": true

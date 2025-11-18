@@ -3,11 +3,11 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "outDir": "dist",
+    "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["../shared/dist/*"]
+      "@shared/*": ["dist/shared/*"]
     },
     "strict": true,
     "esModuleInterop": true,
