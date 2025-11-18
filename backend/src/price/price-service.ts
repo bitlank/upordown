@@ -170,11 +170,6 @@ class PriceService {
       ticker,
       startAt: openAt,
     });
-    if (fetchedPrices.length === 0) {
-      throw new Error(
-        `Fetched empty price data for ${ticker} ${openAt || ''} at ${now}`,
-      );
-    }
 
     console.log(
       `Fetched ${fetchedPrices.length} prices for ${ticker} ${startAt} at ${now}`,
