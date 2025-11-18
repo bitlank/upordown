@@ -1,8 +1,9 @@
 import { PriceData } from './types';
 import PriceService, { PRICE_MAX_AGE_MINUTES } from './price-service.js';
 import { SUPPORTED_TICKERS } from '../bet/bet-service.js';
+import { asyncWrapper } from '../request-wrapper.js';
 import { ApiPriceData } from '@shared/api-interfaces.js';
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 
 function toApiPriceData(priceData: PriceData): ApiPriceData {
   return {
@@ -17,7 +18,11 @@ function toApiPriceData(priceData: PriceData): ApiPriceData {
   };
 }
 
-async function routeGetPriceCurrent(req: Request, res: Response) {
+async function routeGetPriceCurrent(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const ticker = req.params.ticker;
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
@@ -31,7 +36,11 @@ async function routeGetPriceCurrent(req: Request, res: Response) {
   res.json(toApiPriceData(priceData));
 }
 
-async function routeGetPriceRecent(req: Request, res: Response) {
+async function routeGetPriceRecent(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const tickerParam = req.params.ticker;
   const ticker = tickerParam ? tickerParam.toUpperCase() : null;
 
@@ -60,6 +69,10 @@ async function routeGetPriceRecent(req: Request, res: Response) {
 }
 
 const priceController = Router();
-priceController.get('/:ticker/current', routeGetPriceCurrent);
-priceController.get('/:ticker/recent/:startAt', routeGetPriceRecent);
+priceController.get('/:ticker/current', asyncWrapper(routeGetPriceCurrent));
+priceController.get(
+  '/:ticker/recent/:startAt',
+  asyncWrapper(routeGetPriceRecent),
+);
+
 export default priceController;

@@ -1,5 +1,6 @@
 import { getEnvOrThrow } from '../utils.js';
 import { createUser, getUser } from './user-repository.js';
+import { asyncWrapper } from '../request-wrapper.js';
 import jwt from 'jsonwebtoken';
 import {
   CookieOptions,
@@ -84,7 +85,11 @@ export function authMiddleware(
   next();
 }
 
-async function routePostUserLogin(req: Request, res: Response) {
+async function routePostUserLogin(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   let userId = parseAndVerifyToken(req.headers.cookie);
 
   try {
@@ -108,4 +113,4 @@ async function routePostUserLogin(req: Request, res: Response) {
 }
 
 export const authController = Router();
-authController.post('/', routePostUserLogin);
+authController.post('/', asyncWrapper(routePostUserLogin));

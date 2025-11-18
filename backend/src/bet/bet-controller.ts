@@ -2,8 +2,9 @@ import { Bet } from './types';
 import { getBetInfo, placeBet } from './bet-service.js';
 import { findBets } from './bet-repository.js';
 import { parseEnum } from '../utils.js';
+import { asyncWrapper } from '../request-wrapper.js';
 import { ApiBet, BetDirection, BetStatus } from '@shared/api-interfaces.js';
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 
 function toApiBet(bet: Bet): ApiBet {
   return {
@@ -17,13 +18,21 @@ function toApiBet(bet: Bet): ApiBet {
   };
 }
 
-async function routeGetBetInfo(req: Request, res: Response) {
+async function routeGetBetInfo(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const info = getBetInfo();
 
   res.send(info);
 }
 
-async function routeGetOpenBets(req: Request, res: Response) {
+async function routeGetOpenBets(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const bets = await findBets({
     userId: (req as any).userId,
     status: [BetStatus.Open],
@@ -33,7 +42,11 @@ async function routeGetOpenBets(req: Request, res: Response) {
   res.send(apiBets);
 }
 
-async function routePostPlaceBet(req: Request, res: Response) {
+async function routePostPlaceBet(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   const ticker = req.params['ticker'];
   const direction = parseEnum(BetDirection, req.params['direction']);
   if (!direction) {
@@ -50,7 +63,7 @@ async function routePostPlaceBet(req: Request, res: Response) {
 }
 
 const betController = Router();
-betController.get('/info', routeGetBetInfo);
-betController.get('/open', routeGetOpenBets);
-betController.post('/:ticker/:direction', routePostPlaceBet);
+betController.get('/info', asyncWrapper(routeGetBetInfo));
+betController.get('/open', asyncWrapper(routeGetOpenBets));
+betController.post('/:ticker/:direction', asyncWrapper(routePostPlaceBet));
 export default betController;
