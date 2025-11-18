@@ -2,6 +2,10 @@
 
 A simple betting game where users can bet on whether the price of a cryptocurrency will go up or down in the next minute.
 
+## UI
+
+![Screenshot](upordown.png)
+
 ## Running the application
 
 ### Production Environment
@@ -23,7 +27,7 @@ A simple betting game where users can bet on whether the price of a cryptocurren
     ```
 3.  Run the following command:
     ```bash
-    docker compose -f docker-compose.prod.yml up -d
+    sudo docker compose -f docker-compose.prod.yml up -d
     ```
 
 ### Development Environment
@@ -32,7 +36,7 @@ A simple betting game where users can bet on whether the price of a cryptocurren
 2.  Prepare the `.env` file the same way as for production, except set `NODE_ENV` to `dev`
 3.  Run the following command:
     ```bash
-    docker compose -f docker-compose.local.yml up -d
+    sudo docker compose -f docker-compose.local.yml up -d
     ```
 
 ## Accessing the game
