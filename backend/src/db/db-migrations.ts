@@ -48,15 +48,21 @@ const migrations = [
   `,
 ];
 
-async function setUpMigrationsTable(conn: Connection): Promise<boolean> {
-  const [result] = await conn.execute<ResultSetHeader>(`
-    CREATE TABLE IF NOT EXISTS schema_history (
-      migration_id INT PRIMARY KEY,
-      applied_at DATETIME NOT NULL
-    )
-  `);
+async function setUpMigrationsTable(conn: Connection) {
+  try {
+    const [result] = await conn.execute<ResultSetHeader>(`
+      CREATE TABLE IF NOT EXISTS schema_history (
+        migration_id INT PRIMARY KEY,
+        applied_at DATETIME NOT NULL
+      )
+    `);
 
-  return (result.affectedRows || 0) > 0;
+    if (result.warningStatus == 0) {
+      console.log('Migrations table created');
+    }
+  } catch (err) {
+    throw new Error('Failed to create migrations table', { cause: err });
+  }
 }
 
 async function getLastMigrationId(conn: Connection): Promise<number> {
@@ -65,7 +71,7 @@ async function getLastMigrationId(conn: Connection): Promise<number> {
     FROM schema_history
   `);
 
-  const id = row?.max_id ?? 0;
+  const id = row?.max_id || 0;
   return id;
 }
 
@@ -80,6 +86,53 @@ async function applyMigration(conn: Connection, id: number): Promise<void> {
   );
 }
 
+async function applyMigrations(connection: Connection) {
+  await connection.beginTransaction();
+  let id = await getLastMigrationId(connection);
+
+  if (id > migrations.length) {
+    throw new Error(
+      `Database schema version #${id} is higher than migrations.`,
+    );
+  }
+
+  while (id < migrations.length) {
+    id++;
+
+    try {
+      console.log(`Applying migration for database schema version #${id}`);
+      await applyMigration(connection, id);
+      await connection.commit();
+      console.log(`Database schema migrated to version #${id}`);
+    } catch (err) {
+      throw new Error(`Failed to apply migration #${id}`, { cause: err });
+    }
+
+    await connection.beginTransaction();
+    id = await getLastMigrationId(connection);
+  }
+
+  await connection.commit();
+  console.log(`Database schema is up to date at version #${id}`);
+}
+
+async function retryConnection(
+  options: ConnectionOptions,
+  retries = 10,
+): Promise<Connection> {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      const connection = await createConnection(options);
+      console.log('Connected to the DB');
+      return connection;
+    } catch (err) {
+      console.log(`DB connection failed. Retrying... (${i}/${retries})`);
+      await new Promise((res) => setTimeout(res, 1000));
+    }
+  }
+  throw new Error('Failed to connect to the DB after multiple retries');
+}
+
 async function runMigrations(): Promise<void> {
   const options: ConnectionOptions = {
     host: dbConfig.host,
@@ -89,51 +142,11 @@ async function runMigrations(): Promise<void> {
     database: dbConfig.dbName,
   };
 
-  let connection: Connection;
-  try {
-    connection = await createConnection(options);
-  } catch (err) {
-    throw new Error('Failed to connect to the DB', { cause: err });
-  }
+  const connection = await retryConnection(options);
 
   try {
-    console.log('Connected to the DB');
-
-    try {
-      if (await setUpMigrationsTable(connection)) {
-        console.log('Migrations table created');
-      }
-    } catch (err) {
-      throw new Error('Failed to create migrations table', { cause: err });
-    }
-
-    await connection.beginTransaction();
-    let id = await getLastMigrationId(connection);
-
-    if (id > migrations.length) {
-      throw new Error(
-        `Database schema version #${id} is higher than migrations.`,
-      );
-    }
-
-    while (id < migrations.length) {
-      id++;
-
-      try {
-        console.log(`Applying migration for database schema version #${id}`);
-        await applyMigration(connection, id);
-        await connection.commit();
-        console.log(`Database schema migrated to version #${id}`);
-      } catch (err) {
-        throw new Error(`Failed to apply migration #${id}`, { cause: err });
-      }
-
-      await connection.beginTransaction();
-      id = await getLastMigrationId(connection);
-    }
-
-    await connection.commit();
-    console.log(`Database schema is up to date at version #${id}`);
+    await setUpMigrationsTable(connection);
+    await applyMigrations(connection);
   } finally {
     await connection.end();
   }
