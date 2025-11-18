@@ -1,6 +1,10 @@
 import { PriceData } from './types';
 import binanceService, { BinanceStream } from './binance-service.js';
 
+export const PRICE_MAX_AGE_MINUTES = 5;
+const MINUTE_IN_MILLIS = 60 * 1000;
+const PRICE_CACHE_TIMEOUT = PRICE_MAX_AGE_MINUTES * MINUTE_IN_MILLIS + 1000;
+
 const PRICE_DATA_DELAY = 3000;
 
 function truncateToSecond(timestamp: number): number {
@@ -8,23 +12,37 @@ function truncateToSecond(timestamp: number): number {
 }
 
 class PriceCache {
-  private price?: PriceData;
+  private cache: Map<number, PriceData> = new Map();
 
   public addPrice(price: PriceData) {
-    if (!this.price || this.price.openAt <= price.openAt) {
-      this.price = price;
-    }
+    this.cache.set(price.openAt, price);
   }
 
   public addPrices(prices: PriceData[]) {
-    this.addPrice(prices[prices.length - 1]);
+    for (const price of prices) {
+      this.addPrice(price);
+    }
   }
 
   public getPrice(openAt?: number): PriceData | null {
-    if (this.price && (!openAt || this.price.openAt == openAt)) {
-      return this.price;
+    if (!openAt) {
+      return this.cache.get(Math.max(...this.cache.keys())) || null;
     }
-    return null;
+    return this.cache.get(openAt) || null;
+  }
+
+  public cleanup(): number {
+    const cleanupBefore = Date.now() - PRICE_CACHE_TIMEOUT;
+    let count = 0;
+
+    for (const openAt of this.cache.keys()) {
+      if (openAt < cleanupBefore) {
+        this.cache.delete(openAt);
+        count++;
+      }
+    }
+
+    return count;
   }
 }
 
@@ -32,7 +50,6 @@ class PriceService {
   private static instance: PriceService;
   private readonly lastAccessAt: Map<string, number> = new Map();
   private readonly priceCache: Map<string, PriceCache> = new Map();
-  private readonly timeoutMillis = 5 * 60 * 1000;
   private readonly binanceStream = new BinanceStream((price: PriceData) => {
     const delay = Date.now() - (price.openAt + 1000);
 
@@ -45,7 +62,7 @@ class PriceService {
   });
 
   private constructor() {
-    setInterval(() => this.cleanup(), 60000);
+    setInterval(() => this.cleanup(), MINUTE_IN_MILLIS);
   }
 
   public static getInstance(): PriceService {
@@ -78,13 +95,19 @@ class PriceService {
   }
 
   private cleanup() {
-    const now = Date.now();
+    const cleanupBefore = Date.now() - PRICE_CACHE_TIMEOUT;
     for (const [ticker, lastAccessAt] of this.lastAccessAt.entries()) {
-      if (now - lastAccessAt > this.timeoutMillis) {
+      if (lastAccessAt < cleanupBefore) {
         this.binanceStream.unsubscribePrice(ticker);
         this.lastAccessAt.delete(ticker);
         this.deleteCache(ticker);
+
         console.log(`Unsubscribed from inactive ticker: ${ticker}`);
+      } else {
+        const cleanedUp = this.getCache(ticker)?.cleanup();
+        if ((cleanedUp || 0) > 0) {
+          console.log(`Cleaned up ${cleanedUp} prices for ${ticker} from cache`);
+        }
       }
     }
   }

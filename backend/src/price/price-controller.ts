@@ -1,5 +1,5 @@
 import { PriceData } from './types';
-import PriceService from './price-service.js';
+import PriceService, { PRICE_MAX_AGE_MINUTES } from './price-service.js';
 import { SUPPORTED_TICKERS } from '../bet/bet-service.js';
 import { ApiPriceData } from '@shared/api-interfaces';
 import { Router, Request, Response } from 'express';
@@ -49,10 +49,10 @@ async function routeGetPriceRecent(req: Request, res: Response) {
     return res.status(400).json({ error: 'Invalid start at value' });
   }
   const startSince = Date.now() - startAt;
-  if (startSince < 0 || startSince > 2 * 60 * 1000) {
+  if (startSince < 0 || startSince > PRICE_MAX_AGE_MINUTES * 60 * 1000) {
     return res
       .status(400)
-      .json({ error: 'Start at must fall within the last 2 minutes' });
+      .json({ error: `Start at must fall within the last ${PRICE_MAX_AGE_MINUTES} minutes`});
   }
 
   const history = await PriceService.getRecentPrices(ticker, startAt);
