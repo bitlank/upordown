@@ -56,6 +56,15 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
         timeVisible: true,
         secondsVisible: true,
         borderColor: "#4B5563",
+        tickMarkFormatter: (time: number) => {
+          const date = new Date(time * 1000);
+          return new Intl.DateTimeFormat(undefined, {
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          }).format(date);
+        }
       },
       rightPriceScale: {
         borderColor: "#4B5563",
