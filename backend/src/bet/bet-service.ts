@@ -6,7 +6,7 @@ import { groupBy } from '../utils.js';
 import { getPool } from '../db/db-pool.js';
 import { ApiBetInfo, BetDirection, BetStatus } from '@shared/api-interfaces.js';
 
-export const SUPPORTED_TICKERS = ['BTCUSDT'];
+export const SUPPORTED_TICKERS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
 const MINUTE_IN_MILLIS = 60 * 1000;
 const RESULUTION_JOB_DELAY = 500;
 

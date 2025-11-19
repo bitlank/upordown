@@ -144,7 +144,8 @@ const App: React.FC = () => {
   const [tickers, setTickers] = useState<string[]>([]);
   const [currentTicker, setCurrentTicker] = useState<string | null>(null);
   const [nextResolve, setNextResolve] = useState<number | null>(null);
-  const [openBet, setOpenBet] = useState<ApiBet | null>(null);
+  const [openBets, setOpenBets] = useState<ApiBet[]>([]);
+  const [currentBet, setCurrentBet] = useState<ApiBet | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [recentPrices, setRecentPrices] = useState<ApiPriceData[]>([]);
   const [timer, setTimer] = useState<string>("0:00");
@@ -250,58 +251,54 @@ const App: React.FC = () => {
     }
   }, [currentTicker, fetchRecentPrices]);
 
-  const updateBet = useCallback(async () => {
+  const updateOpenBets = useCallback(async () => {
     const bets = await getOpenBets();
-    const currentBet = bets.filter((b) => b.ticker === currentTicker).pop();
 
-    setOpenBet((prev) => {
-      if (currentBet) {
-        return currentBet;
-      }
-
-      if (prev) {
-        updateUser();
-        showMessage("Bet Resolved! Score updated.", "gray");
-        return null;
-      }
-
-      return prev;
+    setOpenBets((prev) => {
+      const resolved = prev.some((b) => !bets.includes(b));
+      if (resolved) updateUser();
+      return bets;
     });
-  }, [currentTicker]);
+  }, []);
+
+  useEffect(() => {
+    const bet = openBets.find((b) => b.ticker === currentTicker) ?? null;
+    setCurrentBet(bet);
+  }, [currentTicker, openBets]);
 
   useEffect(() => {
     if (!isAuthReady || !currentTicker) return;
 
     updatePrice();
-    updateBet();
+    updateOpenBets();
 
     const priceInterval = setInterval(updatePrice, 1000);
-    const betInterval = setInterval(updateBet, 5000);
+    const betInterval = setInterval(updateOpenBets, 5000);
 
     return () => {
       clearInterval(priceInterval);
       clearInterval(betInterval);
     };
-  }, [isAuthReady, currentTicker, updatePrice, updateBet]);
+  }, [isAuthReady, currentTicker, updatePrice, updateOpenBets]);
 
   useEffect(() => {
-    if (!openBet || !openBet.resolveAt) return;
+    if (!currentBet || !currentBet.resolveAt) return;
 
     const now = Date.now();
-    const resolveAt = openBet.resolveAt;
+    const resolveAt = currentBet.resolveAt;
     const delay = resolveAt - now + 1000;
 
     if (delay <= 0) {
-      updateBet();
+      updateOpenBets();
       return;
     }
 
     const timer = setTimeout(() => {
-      updateBet();
+      updateOpenBets();
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [openBet?.resolveAt, updateBet]);
+  }, [currentBet, updateOpenBets]);
 
   // Clock & Timer Loop (UI only, no network)
   useEffect(() => {
@@ -309,12 +306,8 @@ const App: React.FC = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString("en-US", { hour12: false }));
 
-      let remaining = 0;
-      if (openBet) {
-        remaining = openBet.resolveAt - Date.now();
-      } else if (nextResolve) {
-        remaining = nextResolve - Date.now();
-      }
+      const deadline = currentBet?.resolveAt ?? nextResolve ?? 0;
+      const remaining = deadline - Date.now();
 
       if (remaining <= 0) {
         setTimer("0:00");
@@ -327,7 +320,7 @@ const App: React.FC = () => {
     }, 1000);
 
     return () => clearInterval(tickClock);
-  }, [nextResolve, openBet?.resolveAt]);
+  }, [nextResolve, currentBet?.resolveAt]);
 
   // --- Actions ---
   const handlePlaceBet = async (direction: BetDirection) => {
@@ -338,8 +331,8 @@ const App: React.FC = () => {
 
       const bet = await placeBet(currentTicker, direction);
       if (bet) {
-        setOpenBet(bet);
-        await updateUser();
+        setCurrentBet(bet);
+        updateOpenBets();
       }
     } catch (e) {
       console.error(e);
@@ -389,7 +382,8 @@ const App: React.FC = () => {
               value={currentTicker || ""}
               onChange={(e) => {
                 setCurrentTicker(e.target.value);
-                setOpenBet(null);
+                setCurrentBet(null);
+                setRecentPrices([]);
               }}
               className="bg-gray-700 text-white text-3xl md:text-5xl font-extrabold p-2 rounded-lg focus:ring-emerald-500 focus:outline-none mr-4"
             >
@@ -422,7 +416,7 @@ const App: React.FC = () => {
             {recentPrices.length > 0 && currentTicker ? (
               <ChartComponent
                 data={recentPrices}
-                bet={openBet}
+                bet={currentBet}
                 ticker={currentTicker}
               />
             ) : (
@@ -451,26 +445,26 @@ const App: React.FC = () => {
                   Resolution In
                 </p>
                 <p
-                  className={`text-3xl font-extrabold ${openBet ? "text-yellow-300" : "text-gray-400"}`}
+                  className={`text-3xl font-extrabold ${currentBet ? "text-yellow-300" : "text-gray-400"}`}
                 >
                   {timer || ""}
                 </p>
               </div>
 
               {/* Active Bet Status */}
-              {openBet && (
+              {currentBet && (
                 <div className="mt-4 pt-4 border-t border-gray-700 animate-fade-in">
                   <p className="text-sm font-semibold text-gray-400">
                     Active Position
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <span
-                      className={`text-lg font-bold flex items-center gap-2 ${openBet.direction === BetDirection.Long ? "text-green-500" : "text-red-500"}`}
+                      className={`text-lg font-bold flex items-center gap-2 ${currentBet.direction === BetDirection.Long ? "text-green-500" : "text-red-500"}`}
                     >
-                      {openBet.direction.toUpperCase()}
+                      {currentBet.direction.toUpperCase()}
                     </span>
                     <span className="text-sm text-gray-400 font-mono">
-                      {priceFormatter.format(openBet.openPrice)}
+                      {priceFormatter.format(currentBet.openPrice)}
                     </span>
                   </div>
                 </div>
@@ -478,7 +472,7 @@ const App: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            {!openBet && (
+            {!currentBet && (
               <div className="mt-auto flex flex-col space-y-4">
                 <p className="text-center text-gray-400 text-sm">Place Bet</p>
                 <button
