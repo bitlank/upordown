@@ -30,6 +30,13 @@ interface ChartProps {
   ticker: string;
 }
 
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
+  hour: "numeric",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+});
+
 const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -56,15 +63,7 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
         timeVisible: true,
         secondsVisible: true,
         borderColor: "#4B5563",
-        tickMarkFormatter: (time: number) => {
-          const date = new Date(time * 1000);
-          return new Intl.DateTimeFormat(undefined, {
-            hour: 'numeric',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-          }).format(date);
-        }
+        tickMarkFormatter: (time: number) => timeFormatter.format(time * 1000),
       },
       rightPriceScale: {
         borderColor: "#4B5563",
@@ -148,8 +147,7 @@ const App: React.FC = () => {
   const [currentBet, setCurrentBet] = useState<ApiBet | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [recentPrices, setRecentPrices] = useState<ApiPriceData[]>([]);
-  const [timer, setTimer] = useState<string>("0:00");
-  const [currentTime, setCurrentTime] = useState<string>("00:00:00");
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [message, setMessage] = useState<Message | null>(null);
   const recentPricesRef = useRef(recentPrices);
 
@@ -314,27 +312,14 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [currentBet, updateOpenBets]);
 
-  // Clock & Timer Loop (UI only, no network)
   useEffect(() => {
-    const tickClock = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString("en-US", { hour12: false }));
+    const id = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
-      const deadline = currentBet?.resolveAt ?? nextResolve ?? 0;
-      const remaining = deadline - Date.now();
-
-      if (remaining <= 0) {
-        setTimer("0:00");
-      } else {
-        const remainingSec = Math.ceil(remaining / 1000);
-        const mins = Math.floor(remainingSec / 60);
-        const secs = remainingSec % 60;
-        setTimer(`${mins}:${secs.toString().padStart(2, "0")}`);
-      }
-    }, 1000);
-
-    return () => clearInterval(tickClock);
-  }, [nextResolve, currentBet?.resolveAt]);
+  useEffect(() => {
+    setCurrentTime(Date.now());
+  }, [nextResolve, currentBet]);
 
   // --- Actions ---
   const handlePlaceBet = async (direction: BetDirection) => {
@@ -357,6 +342,19 @@ const App: React.FC = () => {
   const showMessage = (text: string, color: "red" | "green" | "gray") => {
     setMessage({ text, color });
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  const formatRemaining = (deadline: number | null) => {
+    if (!deadline) return "0:00";
+
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return "0:00";
+
+    const remainingSec = Math.ceil(remaining / 1000);
+    const mins = Math.floor(remainingSec / 60);
+    const secs = remainingSec % 60;
+
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const priceFormatter = new Intl.NumberFormat(undefined, {
@@ -451,7 +449,7 @@ const App: React.FC = () => {
 
               <p className="text-sm font-semibold text-gray-400 mb-1">Time</p>
               <p className="text-2xl font-mono text-gray-200 mb-4">
-                {currentTime}
+                {timeFormatter.format(currentTime)}
               </p>
 
               <div className="mt-4 p-3 bg-gray-700 rounded-lg text-center">
@@ -461,7 +459,7 @@ const App: React.FC = () => {
                 <p
                   className={`text-3xl font-extrabold ${currentBet ? "text-yellow-300" : "text-gray-400"}`}
                 >
-                  {timer || ""}
+                  {formatRemaining(currentBet?.resolveAt ?? nextResolve)}
                 </p>
               </div>
 
