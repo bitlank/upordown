@@ -16,7 +16,8 @@ export interface ApiUser {
 
 export interface ApiBetInfo {
   tickers: string[];
-  nextResolveAt: number;
+  betDeadline: number;
+  resolveAt: number;
 }
 
 export enum BetDirection {

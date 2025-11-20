@@ -10,14 +10,8 @@ export const SUPPORTED_TICKERS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
 const MINUTE_IN_MILLIS = 60 * 1000;
 const RESULUTION_JOB_DELAY = 500;
 
-function getNextMinute(timestamp: number, plusMinutes: number = 0): number {
-  return (
-    (Math.ceil(timestamp / MINUTE_IN_MILLIS) + plusMinutes) * MINUTE_IN_MILLIS
-  );
-}
-
-function getNextResolveAt(now: number): number {
-  return getNextMinute(now, 1);
+function getNextMinute(timestamp: number = Date.now()): number {
+  return Math.ceil(timestamp / MINUTE_IN_MILLIS) * MINUTE_IN_MILLIS;
 }
 
 function getResolutionJobDelay(): number {
@@ -80,7 +74,7 @@ async function resolveBetGroup(ticker: string, resolveAt: number, bets: Bet[]) {
 }
 
 async function resolveBets() {
-  const lastResolveAt = getNextMinute(Date.now(), -1);
+  const lastResolveAt = getNextMinute() - MINUTE_IN_MILLIS;
 
   console.log(`Resolving bets at ${lastResolveAt}`);
   const betsToResolve = await findBets({
@@ -109,9 +103,11 @@ async function resolveBets() {
 }
 
 export function getBetInfo(): ApiBetInfo {
+  const betDeadline = getNextMinute();
   return {
     tickers: SUPPORTED_TICKERS,
-    nextResolveAt: getNextResolveAt(Date.now()),
+    betDeadline: betDeadline,
+    resolveAt: betDeadline + MINUTE_IN_MILLIS,
   };
 }
 
@@ -125,7 +121,7 @@ export async function placeBet(
   }
 
   const openedAt = Date.now();
-  const resolveAt = getNextResolveAt(openedAt);
+  const resolveAt = getNextMinute(openedAt) + MINUTE_IN_MILLIS;
   const openPrice = (await priceService.getPrice(ticker)).close;
 
   const id = await createBet(

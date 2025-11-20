@@ -7,10 +7,12 @@ import type {
   CandlestickData,
   Time,
 } from "lightweight-charts";
-import {
-  BetDirection,
-  type ApiBet,
-  type ApiPriceData,
+import { BetDirection } from "@shared/api-interfaces";
+import type {
+  ApiBet,
+  ApiUser,
+  ApiBetInfo,
+  ApiPriceData,
 } from "@shared/api-interfaces";
 import { getUser, login } from "./api/user";
 import { getBetInfo, getOpenBets, placeBet } from "./api/bet";
@@ -153,9 +155,8 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
 const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [score, setScore] = useState<number>(0);
-  const [tickers, setTickers] = useState<string[]>([]);
+  const [betInfo, setBetInfo] = useState<ApiBetInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState<string | null>(null);
-  const [nextResolve, setNextResolve] = useState<number | null>(null);
   const [openBets, setOpenBets] = useState<ApiBet[]>([]);
   const [currentBet, setCurrentBet] = useState<ApiBet | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -190,39 +191,37 @@ const App: React.FC = () => {
     initSession();
   }, []);
 
-  const loadTickers = useCallback(async () => {
+  const updateBetInfo = useCallback(async () => {
     const info = await getBetInfo();
-    if (info?.tickers?.length) {
-      setTickers(info.tickers);
-      setCurrentTicker(info.tickers[0]);
-    }
-    if (info?.nextResolveAt) {
-      setNextResolve(info.nextResolveAt);
-    }
+    setBetInfo(info);
+    setCurrentTicker((prev) => {
+      if (prev) return prev;
+      return info.tickers[0];
+    });
   }, []);
 
   useEffect(() => {
     if (!isAuthReady) return;
-    loadTickers();
-  }, [loadTickers, isAuthReady]);
+    updateBetInfo();
+  }, [updateBetInfo, isAuthReady]);
 
   useEffect(() => {
-    if (!nextResolve) return;
+    if (!betInfo) return;
 
     const now = Date.now();
-    const delay = nextResolve - now;
+    const delay = betInfo.betDeadline - now;
 
     if (delay <= 0) {
-      loadTickers();
+      updateBetInfo();
       return;
     }
 
     const timer = setTimeout(() => {
-      loadTickers();
+      updateBetInfo();
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [nextResolve, loadTickers]);
+  }, [betInfo, updateBetInfo]);
 
   useEffect(() => {
     recentPricesRef.current = recentPrices;
@@ -332,7 +331,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setCurrentTime(Date.now());
-  }, [nextResolve, currentBet]);
+  }, [betInfo, currentBet]);
 
   // --- Actions ---
   const handlePlaceBet = async (direction: BetDirection) => {
@@ -358,12 +357,10 @@ const App: React.FC = () => {
   };
 
   const formatRemaining = (deadline: number | null) => {
-    if (!deadline) return "0:00";
-
-    const remaining = deadline - Date.now();
+    const remaining = deadline ? deadline - Date.now() : 0;
     if (remaining <= 0) return "0:00";
 
-    const remainingSec = Math.ceil(remaining / 1000);
+    const remainingSec = Math.floor(remaining / 1000);
     const mins = Math.floor(remainingSec / 60);
     const secs = remainingSec % 60;
 
@@ -412,8 +409,8 @@ const App: React.FC = () => {
               }}
               className="bg-gray-700 text-white text-3xl md:text-5xl font-extrabold p-2 rounded-lg focus:ring-emerald-500 focus:outline-none mr-4"
             >
-              {tickers.length > 0 ? (
-                tickers.map((t) => (
+              {betInfo ? (
+                betInfo.tickers.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -472,7 +469,9 @@ const App: React.FC = () => {
                 <p
                   className={`text-3xl font-extrabold ${currentBet ? "text-yellow-300" : "text-gray-400"}`}
                 >
-                  {formatRemaining(currentBet?.resolveAt ?? nextResolve)}
+                  {formatRemaining(
+                    currentBet?.resolveAt ?? betInfo?.resolveAt ?? 0,
+                  )}
                 </p>
               </div>
 
