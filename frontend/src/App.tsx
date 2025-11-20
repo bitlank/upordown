@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { CandlestickSeries, ColorType, createChart } from "lightweight-charts";
 import type {
   IChartApi,
+  IPriceLine,
   ISeriesApi,
   CandlestickData,
   Time,
@@ -41,8 +42,7 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const betLineRef = useRef<any>(null);
-
+  const betLineRef = useRef<IPriceLine | null>(null);
   // Initialize Chart
   useEffect(() => {
     if (!chartContainerRef.current || chartRef.current) {
@@ -66,7 +66,20 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
         tickMarkFormatter: (time: number) => timeFormatter.format(time * 1000),
       },
       rightPriceScale: {
+        autoScale: true,
         borderColor: "#4B5563",
+      },
+      handleScale: {
+        axisDoubleClickReset: false,
+        axisPressedMouseMove: false,
+        mouseWheel: false,
+        pinch: false,
+      },
+      handleScroll: {
+        mouseWheel: false,
+        pressedMouseMove: false,
+        horzTouchDrag: false,
+        vertTouchDrag: false,
       },
     });
 
@@ -424,7 +437,7 @@ const App: React.FC = () => {
         {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Chart */}
-          <div className="lg:col-span-3 bg-gray-800 p-1 rounded-xl shadow-2xl h-[400px] md:h-[600px] overflow-hidden relative">
+          <div className="lg:col-span-3 bg-gray-800 p-1 rounded-xl shadow-2xl h-[400px] max-h-[85vh] md:h-[600px] md:max-h-[90vh] overflow-hidden relative">
             {recentPrices.length > 0 && currentTicker ? (
               <ChartComponent
                 data={recentPrices}
