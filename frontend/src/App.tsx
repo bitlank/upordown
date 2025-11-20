@@ -151,6 +151,7 @@ const App: React.FC = () => {
   const [timer, setTimer] = useState<string>("0:00");
   const [currentTime, setCurrentTime] = useState<string>("00:00:00");
   const [message, setMessage] = useState<Message | null>(null);
+  const recentPricesRef = useRef(recentPrices);
 
   const updateUser = async () => {
     const userData = await getUser();
@@ -212,22 +213,34 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [nextResolve, loadTickers]);
 
+  useEffect(() => {
+    recentPricesRef.current = recentPrices;
+  }, [recentPrices]);
+
+  useEffect(() => {
+    if (currentTicker) {
+      setCurrentPrice(null);
+      setRecentPrices([]);
+    }
+  }, [currentTicker]);
+
   const updatePrice = useCallback(async () => {
     if (!currentTicker) return;
 
-    const oldestPossibleTime = Math.trunc(Date.now() / 1000) * 1000 - PRICE_MAX_AGE;
-    let nextTime = 0
+    const oldestPossibleTime =
+      Math.trunc(Date.now() / 1000) * 1000 - PRICE_MAX_AGE;
 
-    setRecentPrices(prev => {
-      nextTime = prev.length > 0 ? prev[prev.length - 1].openAt + 1000 : 0;
-      return prev;
-    });
+    const prevPrices = recentPricesRef.current;
+    const nextTime =
+      prevPrices.length > 0
+        ? prevPrices[prevPrices.length - 1].openAt + 1000
+        : 0;
 
     const startAt = Math.max(nextTime, oldestPossibleTime);
     const fetchedPrices = await fetchRecentPrices(currentTicker, startAt);
 
     if (fetchedPrices && fetchedPrices.length > 0) {
-      setRecentPrices(prev => {
+      setRecentPrices((prev) => {
         const newPrices = [...prev];
         let latestPrice = newPrices[newPrices.length - 1];
 
@@ -241,15 +254,16 @@ const App: React.FC = () => {
         setCurrentPrice(latestPrice?.close);
 
         if (newPrices.length > PRICE_MAX_AGE / 1000 + 60) {
-          let deleteCount = 0;
-          for (; deleteCount < newPrices.length && newPrices[deleteCount].openAt < oldestPossibleTime; deleteCount++);
-          newPrices.splice(0, deleteCount);
+          const firstToKeep = newPrices.findIndex(
+            (p) => p.openAt >= oldestPossibleTime,
+          );
+          if (firstToKeep > 0) newPrices.splice(0, firstToKeep);
         }
 
         return newPrices;
       });
     }
-  }, [currentTicker, fetchRecentPrices]);
+  }, [currentTicker]);
 
   const updateOpenBets = useCallback(async () => {
     const bets = await getOpenBets();
