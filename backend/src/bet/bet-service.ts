@@ -6,7 +6,12 @@ import { groupBy } from '../utils.js';
 import { getPool } from '../db/db-pool.js';
 import { ApiBetInfo, BetDirection, BetStatus } from '@shared/api-interfaces.js';
 
-export const SUPPORTED_TICKERS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+const SUPPORTED_TICKERS = [
+  { ticker: 'BTCUSDT', displayName: 'BTC/USD' },
+  { ticker: 'ETHUSDT', displayName: 'ETH/USD' },
+  { ticker: 'SOLUSDT', displayName: 'SOL/USD' },
+];
+
 const MINUTE_IN_MILLIS = 60 * 1000;
 const RESULUTION_JOB_DELAY = 500;
 
@@ -111,15 +116,15 @@ export function getBetInfo(): ApiBetInfo {
   };
 }
 
+export function isTickerSupported(ticker: string): boolean {
+  return SUPPORTED_TICKERS.find((t) => t.ticker === ticker) !== undefined;
+}
+
 export async function placeBet(
   userId: number,
   ticker: string,
   direction: BetDirection,
 ): Promise<Bet> {
-  if (!SUPPORTED_TICKERS.includes(ticker)) {
-    throw new Error('Unsupported ticker');
-  }
-
   const openedAt = Date.now();
   const resolveAt = getNextMinute(openedAt) + MINUTE_IN_MILLIS;
   const openPrice = (await priceService.getPrice(ticker)).close;

@@ -13,6 +13,7 @@ import type {
   ApiUser,
   ApiBetInfo,
   ApiPriceData,
+  ApiTickerInfo,
 } from "@shared/api-interfaces";
 import { getUser, login } from "./api/user";
 import { getBetInfo, getOpenBets, placeBet } from "./api/bet";
@@ -156,7 +157,9 @@ const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [user, setUser] = useState<ApiUser | null>(null);
   const [betInfo, setBetInfo] = useState<ApiBetInfo | null>(null);
-  const [currentTicker, setCurrentTicker] = useState<string | null>(null);
+  const [currentTicker, setCurrentTicker] = useState<ApiTickerInfo | null>(
+    null,
+  );
   const [openBets, setOpenBets] = useState<ApiBet[]>([]);
   const [currentBet, setCurrentBet] = useState<ApiBet | null>(null);
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
@@ -248,7 +251,10 @@ const App: React.FC = () => {
         : 0;
 
     const startAt = Math.max(nextTime, oldestPossibleTime);
-    const fetchedPrices = await fetchRecentPrices(currentTicker, startAt);
+    const fetchedPrices = await fetchRecentPrices(
+      currentTicker?.ticker,
+      startAt,
+    );
 
     if (fetchedPrices && fetchedPrices.length > 0) {
       setRecentPrices((prev) => {
@@ -287,7 +293,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const bet = openBets.find((b) => b.ticker === currentTicker) ?? null;
+    const bet =
+      openBets.find((b) => b.ticker === currentTicker?.ticker) ?? null;
     setCurrentBet(bet);
   }, [currentTicker, openBets]);
 
@@ -341,7 +348,7 @@ const App: React.FC = () => {
         return;
       }
 
-      const bet = await placeBet(currentTicker, direction);
+      const bet = await placeBet(currentTicker?.ticker, direction);
       if (bet) {
         setCurrentBet(bet);
         updateOpenBets();
@@ -396,9 +403,12 @@ const App: React.FC = () => {
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div className="flex items-center">
             <select
-              value={currentTicker || ""}
+              value={currentTicker?.ticker || ""}
               onChange={(e) => {
-                setCurrentTicker(e.target.value);
+                const ticker =
+                  betInfo?.tickers.find((t) => t.ticker === e.target.value) ??
+                  null;
+                setCurrentTicker(ticker);
                 setCurrentBet(null);
                 setRecentPrices([]);
               }}
@@ -406,8 +416,8 @@ const App: React.FC = () => {
             >
               {betInfo ? (
                 betInfo.tickers.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                  <option key={t.ticker} value={t.ticker}>
+                    {t.displayName}
                   </option>
                 ))
               ) : (
@@ -442,7 +452,7 @@ const App: React.FC = () => {
               <ChartComponent
                 data={recentPrices}
                 bet={currentBet}
-                ticker={currentTicker}
+                ticker={currentTicker.ticker}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-gray-500">

@@ -1,5 +1,5 @@
 import { Bet } from './types';
-import { getBetInfo, placeBet } from './bet-service.js';
+import { getBetInfo, isTickerSupported, placeBet } from './bet-service.js';
 import { findBets } from './bet-repository.js';
 import { parseEnum } from '../utils.js';
 import { asyncWrapper } from '../request-wrapper.js';
@@ -47,10 +47,18 @@ async function routePostPlaceBet(
   res: Response,
   next: NextFunction,
 ) {
-  const ticker = req.params['ticker'];
   const direction = parseEnum(BetDirection, req.params['direction']);
   if (!direction) {
     return res.status(400).send({ error: 'Invalid direction' });
+  }
+
+  const tickerParam = req.params.ticker;
+  const ticker = tickerParam ? tickerParam.toUpperCase() : null;
+  if (!ticker) {
+    return res.status(400).json({ error: 'Ticker symbol is required' });
+  }
+  if (!isTickerSupported(ticker)) {
+    return res.status(400).send({ error: 'Unsupported ticker' });
   }
 
   try {

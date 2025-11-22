@@ -17,8 +17,13 @@ export interface ApiUser {
   betsLost: number;
 }
 
+export interface ApiTickerInfo {
+  ticker: string;
+  displayName: string;
+}
+
 export interface ApiBetInfo {
-  tickers: string[];
+  tickers: ApiTickerInfo[];
   betDeadline: number;
   resolveAt: number;
 }

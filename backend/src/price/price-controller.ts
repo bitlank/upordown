@@ -1,6 +1,6 @@
 import { PriceData } from './types';
 import PriceService, { PRICE_MAX_AGE_MINUTES } from './price-service.js';
-import { SUPPORTED_TICKERS } from '../bet/bet-service.js';
+import { isTickerSupported } from '../bet/bet-service.js';
 import { asyncWrapper } from '../request-wrapper.js';
 import { ApiPriceData } from '@shared/api-interfaces.js';
 import { Router, Request, Response, NextFunction } from 'express';
@@ -23,12 +23,13 @@ async function routeGetPriceCurrent(
   res: Response,
   next: NextFunction,
 ) {
-  const ticker = req.params.ticker;
+  const tickerParam = req.params.ticker;
+  const ticker = tickerParam ? tickerParam.toUpperCase() : null;
+
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
-
-  if (!SUPPORTED_TICKERS.includes(ticker)) {
+  if (!isTickerSupported(ticker)) {
     return res.status(400).json({ error: 'Unsupported ticker' });
   }
 
@@ -47,7 +48,7 @@ async function routeGetPriceRecent(
   if (!ticker) {
     return res.status(400).json({ error: 'Ticker symbol is required' });
   }
-  if (!SUPPORTED_TICKERS.includes(ticker)) {
+  if (!isTickerSupported(ticker)) {
     return res.status(400).json({ error: 'Unsupported ticker' });
   }
 
