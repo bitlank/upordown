@@ -19,7 +19,7 @@ import { getUser, login } from "./api/user";
 import { getBetInfo, getOpenBets, placeBet } from "./api/bet";
 import { fetchRecentPrices } from "./api/price";
 
-const PRICE_MAX_AGE = 4 * 60 * 1000;
+const PRICE_EXPIRY_AGE = 4 * 60 * 1000;
 
 interface Message {
   text: string;
@@ -231,55 +231,60 @@ const App: React.FC = () => {
     recentPricesRef.current = recentPrices;
   }, [recentPrices]);
 
-  useEffect(() => {
-    if (currentTicker) {
-      setCurrentPrice(null);
-      setRecentPrices([]);
-    }
-  }, [currentTicker]);
+  function getExpireAt(): number {
+    return Math.trunc(Date.now() / 1000) * 1000 - PRICE_EXPIRY_AGE;
+  }
 
-  const updatePrice = useCallback(async () => {
+  const reloadPrices = useCallback(async () => {
     if (!currentTicker) return;
 
-    const oldestPossibleTime =
-      Math.trunc(Date.now() / 1000) * 1000 - PRICE_MAX_AGE;
+    const fetched = await fetchRecentPrices(
+      currentTicker.ticker,
+      getExpireAt(),
+    );
+
+    if (fetched.length === 0) return;
+
+    setRecentPrices(fetched);
+    const latestPrice = fetched[fetched.length - 1];
+    setCurrentPrice(latestPrice.close);
+  }, [currentTicker]);
+
+  const updatePrices = useCallback(async () => {
+    if (!currentTicker) return;
 
     const prevPrices = recentPricesRef.current;
-    const nextTime =
+    const nextOpenAt =
       prevPrices.length > 0
         ? prevPrices[prevPrices.length - 1].openAt + 1000
         : 0;
 
-    const startAt = Math.max(nextTime, oldestPossibleTime);
-    const fetchedPrices = await fetchRecentPrices(
-      currentTicker?.ticker,
-      startAt,
-    );
+    const expireAt = getExpireAt();
+    const startAt = Math.max(nextOpenAt, expireAt);
+    const fetched = await fetchRecentPrices(currentTicker.ticker, startAt);
 
-    if (fetchedPrices && fetchedPrices.length > 0) {
-      setRecentPrices((prev) => {
-        const newPrices = [...prev];
-        let latestPrice = newPrices[newPrices.length - 1];
+    if (fetched.length === 0) return;
+    setRecentPrices((prev) => {
+      if (prev.length === 0) return fetched;
 
-        for (const price of fetchedPrices) {
-          if (price.openAt > (latestPrice?.openAt || 0)) {
-            newPrices.push(price);
-            latestPrice = price;
-          }
-        }
+      const latestPrev = prev[prev.length - 1];
+      const firstFetched = fetched.findIndex(
+        (p) => p.openAt > latestPrev.openAt,
+      );
+      if (firstFetched === -1) return prev;
 
-        setCurrentPrice(latestPrice?.close);
+      const firstToKeep = prev.findIndex((p) => p.openAt >= expireAt);
+      if (firstToKeep === -1) return fetched;
 
-        if (newPrices.length > PRICE_MAX_AGE / 1000 + 60) {
-          const firstToKeep = newPrices.findIndex(
-            (p) => p.openAt >= oldestPossibleTime,
-          );
-          if (firstToKeep > 0) newPrices.splice(0, firstToKeep);
-        }
+      const pricesToAdd =
+        firstFetched > 0 ? fetched.slice(firstFetched) : fetched;
+      const pricesToKeep = firstToKeep > 0 ? prev.slice(firstToKeep) : prev;
 
-        return newPrices;
-      });
-    }
+      return [...pricesToKeep, ...pricesToAdd];
+    });
+
+    const latestPrice = fetched[fetched.length - 1];
+    setCurrentPrice(latestPrice.close);
   }, [currentTicker]);
 
   const updateOpenBets = useCallback(async () => {
@@ -301,17 +306,25 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isAuthReady || !currentTicker) return;
 
-    updatePrice();
-    updateOpenBets();
+    setCurrentPrice(null);
+    setRecentPrices([]);
+    setCurrentBet(null);
 
-    const priceInterval = setInterval(updatePrice, 1000);
+    reloadPrices();
+    updateOpenBets();
+  }, [isAuthReady, currentTicker, updateOpenBets]);
+
+  useEffect(() => {
+    if (!isAuthReady || !currentTicker) return;
+
+    const priceInterval = setInterval(updatePrices, 1000);
     const betInterval = setInterval(updateOpenBets, 5000);
 
     return () => {
       clearInterval(priceInterval);
       clearInterval(betInterval);
     };
-  }, [isAuthReady, currentTicker, updatePrice, updateOpenBets]);
+  }, [isAuthReady, currentTicker, updatePrices, updateOpenBets]);
 
   useEffect(() => {
     if (!currentBet || !currentBet.resolveAt) return;
@@ -409,8 +422,6 @@ const App: React.FC = () => {
                   betInfo?.tickers.find((t) => t.ticker === e.target.value) ??
                   null;
                 setCurrentTicker(ticker);
-                setCurrentBet(null);
-                setRecentPrices([]);
               }}
               className="bg-gray-700 text-white text-3xl md:text-5xl font-extrabold p-2 rounded-lg focus:ring-emerald-500 focus:outline-none mr-4"
             >
