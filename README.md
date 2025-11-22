@@ -8,33 +8,20 @@ A simple betting game where users can bet on whether the price of a cryptocurren
 
 ## Running the application
 
-### Production Environment
+### Run the latest published images on a Linux amd64 or arm64 host machine
 
-1.  Copy `docker-compose.prod.yml` to a Linux amd64 machine
-2.  Create a `.env` file with the following variables:
-
-    ```bash
-    NODE_ENV="prod"
-
-    # Database Credentials
-    DB_ROOT_PASSWORD="<some_password>"
-    DB_APP_USER="upordown"
-    DB_APP_PASSWORD="<another_password>"
-    DB_NAME="upordown"
-
-    # Backend JWT Secret
-    JWT_SECRET="<a_long_secret>"
-    ```
-3.  Run the following command:
+1.  Generate an `.env` file: `./generate_env.sh`
+2.  Copy `docker-compose.prod.yml` and `.env` to the host
+3.  Go to the host and run the following command to pull and run the containers:
     ```bash
     sudo docker compose -f docker-compose.prod.yml up -d
     ```
 
-### Development Environment
+### Run from sources locally
 
-1.  Checkout the repository
-2.  Prepare the `.env` file the same way as for production, except set `NODE_ENV` to `dev`
-3.  Run the following command:
+1.  Clone the repository: `git clone git@github.com:bitlank/upordown.git && cd upordown`
+2.  Generate an `.env` file: `./generate_env.sh`
+3.  Run the following command to build and run the containers:
     ```bash
     sudo docker compose -f docker-compose.local.yml up -d
     ```
