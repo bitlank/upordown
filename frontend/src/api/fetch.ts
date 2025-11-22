@@ -3,7 +3,6 @@ const BASE_URL = "/api";
 async function fetchApi(
   endpoint: string,
   method: "GET" | "POST" = "GET",
-  body?: any,
 ): Promise<Response> {
   const url = `${BASE_URL}${endpoint}`;
 
@@ -11,7 +10,6 @@ async function fetchApi(
     method,
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: body ? JSON.stringify(body) : null,
   };
 
   let retry = true;
@@ -32,9 +30,9 @@ async function fetchApi(
       }
 
       return response;
-    } catch (error: any) {
+    } catch (err: any) {
       if (!retry) {
-        throw error;
+        throw err;
       }
 
       await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000));
@@ -45,9 +43,8 @@ async function fetchApi(
 export async function fetchJson<T>(
   endpoint: string,
   method: "GET" | "POST" = "GET",
-  body?: any,
 ): Promise<T> {
-  const response = await fetchApi(endpoint, method, body);
+  const response = await fetchApi(endpoint, method);
 
   const text = await response.text();
   if (!text) {
@@ -60,7 +57,6 @@ export async function fetchJson<T>(
 export async function fetchEmpty(
   endpoint: string,
   method: "GET" | "POST" = "GET",
-  body?: any,
 ): Promise<void> {
-  await fetchApi(endpoint, method, body);
+  await fetchApi(endpoint, method);
 }
