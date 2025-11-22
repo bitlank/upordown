@@ -450,7 +450,7 @@ const App: React.FC = () => {
             </div>
             <div>
               <p className="text-lg text-gray-400">Lost</p>
-              <p className="text-4xl text-green-500">{user?.betsLost || 0}</p>
+              <p className="text-4xl text-emerald-500">{user?.betsLost || 0}</p>
             </div>
           </div>
         </header>
@@ -507,7 +507,7 @@ const App: React.FC = () => {
                   </p>
                   <div className="flex items-center justify-between mt-2">
                     <span
-                      className={`text-lg font-bold flex items-center gap-2 ${currentBet.direction === BetDirection.Long ? "text-green-500" : "text-red-500"}`}
+                      className={`text-lg font-bold flex items-center gap-2 ${currentBet.direction === BetDirection.Long ? "text-emerald-500" : "text-red-500"}`}
                     >
                       {currentBet.direction.toUpperCase()}
                     </span>
@@ -525,7 +525,7 @@ const App: React.FC = () => {
                 <p className="text-center text-gray-400 text-sm">Place Bet</p>
                 <button
                   onClick={() => handlePlaceBet(BetDirection.Long)}
-                  className="w-full p-4 rounded-xl text-2xl font-black shadow-lg transition-transform hover:scale-[1.02] bg-green-600 hover:bg-green-700 text-white ring-4 ring-green-500/50"
+                  className="w-full p-4 rounded-xl text-2xl font-black shadow-lg transition-transform hover:scale-[1.02] bg-emerald-600 hover:bg-emerald-700 text-white ring-4 ring-emerald-500/50"
                 >
                   LONG{" "}
                   <span className="text-sm ml-2 font-normal opacity-75">
