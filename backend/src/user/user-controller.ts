@@ -1,15 +1,19 @@
 import { User } from './types';
 import { getUser } from './user-repository.js';
 import { asyncWrapper } from '../request-wrapper.js';
+import { getBetStats } from '../bet/bet-repository.js';
 import { ApiUser } from '@shared/api-interfaces.js';
 import { NextFunction, Request, Response, Router } from 'express';
 
 export const userRouter = Router();
 
-function toApiUser(user: User): ApiUser {
+function toApiUser(user: User, betStats: Record<string, number>): ApiUser {
   return {
     createdAt: user.createdAt,
     score: user.score,
+    betsOpen: betStats.open,
+    betsWon: betStats.won,
+    betsLost: betStats.lost,
   };
 }
 
@@ -20,7 +24,10 @@ async function routeGetUser(req: Request, res: Response, next: NextFunction) {
     console.log(`Cannot find user #${userId}`);
     return res.status(404).send({ error: 'User not found' });
   }
-  res.status(200).send(toApiUser(user));
+
+  const betStats = await getBetStats(userId);
+
+  res.status(200).send(toApiUser(user, betStats));
 }
 
 export const userController = Router();

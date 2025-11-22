@@ -47,6 +47,32 @@ export async function createBet(
   return result.insertId;
 }
 
+export async function getBetStats(
+  userId: number,
+  connection?: Connection,
+): Promise<Record<BetStatus, number>> {
+  const conn = connection ? connection : getPool();
+  const [rows] = await conn.execute<RowDataPacket[]>(
+    `
+      SELECT status, COUNT(*) AS count
+      FROM bets
+      WHERE user_id = ?
+      GROUP BY status
+    `,
+    [userId],
+  );
+
+  const stats: Record<BetStatus, number> = Object.fromEntries(
+    Object.values(BetStatus).map((s) => [s, 0]),
+  ) as Record<BetStatus, number>;
+
+  for (const row of rows) {
+    stats[parseEnumOrThrow(BetStatus, row.status)] = Number(row.count);
+  }
+
+  return stats;
+}
+
 export async function getBet(
   id: number,
   connection?: Connection,

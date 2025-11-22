@@ -154,7 +154,7 @@ const ChartComponent: React.FC<ChartProps> = ({ data, bet }) => {
 
 const App: React.FC = () => {
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [score, setScore] = useState<number>(0);
+  const [user, setUser] = useState<ApiUser | null>(null);
   const [betInfo, setBetInfo] = useState<ApiBetInfo | null>(null);
   const [currentTicker, setCurrentTicker] = useState<string | null>(null);
   const [openBets, setOpenBets] = useState<ApiBet[]>([]);
@@ -168,7 +168,7 @@ const App: React.FC = () => {
   const updateUser = async () => {
     const userData = await getUser();
     if (userData) {
-      setScore(userData.score);
+      setUser(userData);
     }
   };
 
@@ -181,15 +181,16 @@ const App: React.FC = () => {
       try {
         await login();
         setIsAuthReady(true);
-        await updateUser();
       } catch (Err) {
         console.error("Failed to create session:", Err);
         showMessage("Authentication failed", "red");
       }
+
+      updateUser();
     };
 
     initSession();
-  }, []);
+  }, [isAuthReady]);
 
   const updateBetInfo = useCallback(async () => {
     const info = await getBetInfo();
@@ -371,12 +372,6 @@ const App: React.FC = () => {
     maximumFractionDigits: 2,
   });
 
-  const getScoreColor = () => {
-    if (score > 1000) return "text-green-500";
-    if (score < 0) return "text-red-500";
-    return "text-yellow-300";
-  };
-
   if (!isAuthReady) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
@@ -421,13 +416,21 @@ const App: React.FC = () => {
             </select>
           </div>
 
-          <div className="mt-4 md:mt-0 text-right">
-            <p className="text-lg text-gray-400">Score</p>
-            <p
-              className={`text-4xl font-bold transition-colors ${getScoreColor()}`}
-            >
-              {score.toLocaleString()}
-            </p>
+          <div className="mt-4 md:mt-0 flex gap-8 text-right">
+            <div>
+              <p className="text-lg text-gray-400">Score</p>
+              <p className="text-4xl font-bold text-yellow-300">
+                {user?.score?.toLocaleString() || 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-lg text-gray-400">Won</p>
+              <p className="text-4xl text-red-500">{user?.betsWon || 0}</p>
+            </div>
+            <div>
+              <p className="text-lg text-gray-400">Lost</p>
+              <p className="text-4xl text-green-500">{user?.betsLost || 0}</p>
+            </div>
           </div>
         </header>
 
