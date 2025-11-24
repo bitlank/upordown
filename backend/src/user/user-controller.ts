@@ -2,7 +2,7 @@ import { User } from './types';
 import { getUser } from './user-repository.js';
 import { asyncWrapper } from '../request-wrapper.js';
 import { getBetStats } from '../bet/bet-repository.js';
-import { ApiUser } from '@shared/api-interfaces.js';
+import { ApiUser } from '../shared/api-interfaces.js';
 import { NextFunction, Request, Response, Router } from 'express';
 
 export const userRouter = Router();

@@ -29,14 +29,14 @@ export interface ApiBetInfo {
 }
 
 export enum BetDirection {
-  Long = "long",
-  Short = "short",
+  Long = 'long',
+  Short = 'short',
 }
 
 export enum BetStatus {
-  Open = "open",
-  Won = "won",
-  Lost = "lost",
+  Open = 'open',
+  Won = 'won',
+  Lost = 'lost',
 }
 
 export interface ApiBet {

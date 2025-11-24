@@ -4,7 +4,7 @@ import express from 'express';
 import betController from '../../src/bet/bet-controller.js';
 import * as betService from '../../src/bet/bet-service.js';
 import * as betRepository from '../../src/bet/bet-repository.js';
-import { BetDirection, BetStatus } from '@shared/api-interfaces.js';
+import { BetDirection, BetStatus } from '../../src/shared/api-interfaces.js';
 import { Request, Response, NextFunction } from 'express';
 
 const app = express();

@@ -5,7 +5,7 @@ import { getPool } from '../db/db-pool.js';
 import priceService, { PRICE_INTERVAL } from '../price/price-service.js';
 import { updateUserScore } from '../user/user-repository.js';
 import { groupBy } from '../utils.js';
-import { BetStatus, BetDirection } from '@shared/api-interfaces.js';
+import { BetStatus, BetDirection } from '../shared/api-interfaces.js';
 import { Connection } from 'mysql2/promise.js';
 
 function getBetStatus(bet: Bet, resolutionPrice: number): BetStatus {

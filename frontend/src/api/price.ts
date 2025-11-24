@@ -1,4 +1,4 @@
-import type { ApiPriceData } from "@shared/api-interfaces";
+import type { ApiPriceData } from "../../../backend/src/shared/api-interfaces";
 import { fetchJson } from "./fetch";
 
 export async function fetchCurrentPrice(ticker: string): Promise<ApiPriceData> {

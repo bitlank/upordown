@@ -1,4 +1,4 @@
-import { BetDirection, BetStatus } from '@shared/api-interfaces';
+import { BetDirection, BetStatus } from '../shared/api-interfaces';
 
 export interface Bet {
   id: number;

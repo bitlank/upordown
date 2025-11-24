@@ -3,7 +3,7 @@ import { getBetInfo, isTickerSupported, placeBet } from './bet-service.js';
 import { findBets } from './bet-repository.js';
 import { parseEnum } from '../utils.js';
 import { asyncWrapper } from '../request-wrapper.js';
-import { ApiBet, BetDirection, BetStatus } from '@shared/api-interfaces.js';
+import { ApiBet, BetDirection, BetStatus } from '../shared/api-interfaces.js';
 import { Router, Request, Response, NextFunction } from 'express';
 
 function toApiBet(bet: Bet): ApiBet {

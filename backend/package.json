@@ -7,8 +7,7 @@
   "scripts": {
     "start": "node --env-file=.env dist/index.js",
     "dev": "tsx watch --env-file=.env src/index.ts",
-    "prebuild": "cd ../shared && npm run build -- --outDir ../backend/dist/shared/",
-    "build": "tsc && tsc-alias",
+    "build": "tsc",
     "test": "vitest --run",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -30,7 +29,6 @@
     "@types/ws": "^8.18.1",
     "prettier": "^3.6.2",
     "supertest": "^7.1.4",
-    "tsc-alias": "^1.8.16",
     "tsx": "^4.20.6",
     "typescript": "^5.4.5",
     "vitest": "^1.0.0"

@@ -7,14 +7,14 @@ import type {
   CandlestickData,
   Time,
 } from "lightweight-charts";
-import { BetDirection } from "@shared/api-interfaces";
+import { BetDirection } from "../../backend/src/shared/api-interfaces";
 import type {
   ApiBet,
   ApiUser,
   ApiBetInfo,
   ApiPriceData,
   ApiTickerInfo,
-} from "@shared/api-interfaces";
+} from "../../backend/src/shared/api-interfaces";
 import { getUser, login } from "./api/user";
 import { getBetInfo, getOpenBets, placeBet } from "./api/bet";
 import { fetchRecentPrices } from "./api/price";

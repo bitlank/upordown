@@ -1,4 +1,4 @@
-import type { ApiUser } from "@shared/api-interfaces";
+import type { ApiUser } from "../../../backend/src/shared/api-interfaces";
 import { fetchEmpty, fetchJson } from "./fetch";
 
 export async function getUser(): Promise<ApiUser> {

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { BinanceStream } from '../../src/price/binance-service.js';
 import { MockWebSocketServer } from '../mocks/ws.js';
-import { PriceData } from '@shared/api-interfaces.js';
+import { PriceData } from '../shared/api-interfaces.js';
 
 describe('BinanceStream', () => {
   let mockServer: MockWebSocketServer;

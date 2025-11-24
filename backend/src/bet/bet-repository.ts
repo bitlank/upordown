@@ -1,7 +1,7 @@
 import { Bet } from './types';
 import { getPool } from '../db/db-pool.js';
 import { parseEnumOrThrow } from '../utils.js';
-import { BetDirection, BetStatus } from '@shared/api-interfaces.js';
+import { BetDirection, BetStatus } from '../shared/api-interfaces.js';
 import { RowDataPacket, ResultSetHeader, Connection } from 'mysql2/promise';
 
 function mapBet(row: RowDataPacket): Bet {

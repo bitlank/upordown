@@ -1,4 +1,8 @@
-import type { ApiBet, ApiBetInfo, BetDirection } from "@shared/api-interfaces";
+import type {
+  ApiBet,
+  ApiBetInfo,
+  BetDirection,
+} from "../../../backend/src/shared/api-interfaces";
 import { fetchJson } from "./fetch";
 
 export async function getBetInfo(): Promise<ApiBetInfo> {

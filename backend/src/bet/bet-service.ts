@@ -1,7 +1,7 @@
 import { Bet } from './types';
 import { createBet, getBet } from './bet-repository.js';
 import priceService from '../price/price-service.js';
-import { ApiBetInfo, BetDirection } from '@shared/api-interfaces.js';
+import { ApiBetInfo, BetDirection } from '../shared/api-interfaces.js';
 import {
   getResolutionTime,
   RESOLUTION_INTERVAL,

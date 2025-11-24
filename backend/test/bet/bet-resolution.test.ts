@@ -5,7 +5,7 @@ import * as betRepository from '../../src/bet/bet-repository.js';
 import { getPool } from '../../src/db/db-pool.js';
 import priceService, { PRICE_INTERVAL } from '../../src/price/price-service.js';
 import * as userRepository from '../../src/user/user-repository.js';
-import { BetDirection, BetStatus } from '@shared/api-interfaces.js';
+import { BetDirection, BetStatus } from '../../src/shared/api-interfaces.js';
 import { Bet } from '../../src/bet/types.js';
 
 vi.mock('../../src/bet/bet-config', () => ({
