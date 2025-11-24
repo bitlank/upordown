@@ -6,11 +6,11 @@ import { userController } from './user/user-controller.js';
 import { authController, authMiddleware } from './user/auth.js';
 import runMigrations from './db/db-migrations.js';
 import { initializePool } from './db/db-pool.js';
-import betResolutionService from './bet/bet-service.js';
+import betService from './bet/bet-service.js';
 
 await runMigrations();
 await initializePool();
-betResolutionService.start();
+betService.start();
 
 const app = express();
 const port = process.env.LISTEN_PORT || 3000;

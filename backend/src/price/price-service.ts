@@ -1,9 +1,12 @@
 import { PriceData } from './types';
 import binanceService, { BinanceStream } from './binance-service.js';
 
+export const PRICE_INTERVAL = 1000;
+
 export const PRICE_MAX_AGE_MINUTES = 5;
+
 const MINUTE_IN_MILLIS = 60 * 1000;
-const PRICE_CACHE_TIMEOUT = PRICE_MAX_AGE_MINUTES * MINUTE_IN_MILLIS + 1000;
+const PRICE_CACHE_TIMEOUT = PRICE_MAX_AGE_MINUTES * MINUTE_IN_MILLIS;
 
 const PRICE_DATA_DELAY = 3000;
 
@@ -51,7 +54,7 @@ class PriceService {
   private readonly lastAccessAt: Map<string, number> = new Map();
   private readonly priceCache: Map<string, PriceCache> = new Map();
   private readonly binanceStream = new BinanceStream((price: PriceData) => {
-    const delay = Date.now() - (price.openAt + 1000);
+    const delay = Date.now() - (price.openAt + PRICE_INTERVAL);
 
     console.log(
       `Price data message for ${price.ticker} ${price.openAt} received with a delay of ${delay} ms`,
@@ -154,7 +157,7 @@ class PriceService {
     const prices: PriceData[] = [];
     let openAt = truncateToSecond(startAt);
 
-    for (; openAt < now; openAt += 1000) {
+    for (; openAt < now; openAt += PRICE_INTERVAL) {
       const cached = this.getFromCache(ticker, openAt);
       if (!cached) {
         break;
