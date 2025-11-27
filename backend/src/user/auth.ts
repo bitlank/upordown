@@ -1,6 +1,6 @@
 import { getEnvOrThrow } from '../utils.js';
 import { createUser, getUser } from './user-repository.js';
-import { asyncWrapper } from '../request-wrapper.js';
+import { asyncHandler } from '../async-handler.js';
 import jwt from 'jsonwebtoken';
 import {
   CookieOptions,
@@ -81,7 +81,7 @@ export function authMiddleware(
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  (req as any).userId = userId;
+  req.userId = userId;
   next();
 }
 
@@ -112,5 +112,6 @@ async function routePostUserLogin(
   res.status(200).send({ status: 'ok' });
 }
 
-export const authController = Router();
-authController.post('/', asyncWrapper(routePostUserLogin));
+const authController = Router();
+authController.post('/', asyncHandler(routePostUserLogin));
+export default authController;

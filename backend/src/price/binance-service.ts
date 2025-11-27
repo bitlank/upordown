@@ -251,7 +251,13 @@ export class BinanceService {
     }
 
     const url = `${this.restUrl}/klines?${queryParams}`;
-    const response = await fetch(url);
+    let response: Response;
+    try {
+      response = await fetch(url);
+    } catch (err) {
+      throw new Error(`Failed to fetch price for ${normalizedTicker}: ${err}`);
+    }
+
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(

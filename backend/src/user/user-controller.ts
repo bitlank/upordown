@@ -1,6 +1,6 @@
 import { User } from './types';
 import { getUser } from './user-repository.js';
-import { asyncWrapper } from '../request-wrapper.js';
+import { asyncHandler } from '../async-handler.js';
 import { getBetStats } from '../bet/bet-repository.js';
 import { ApiUser } from '../shared/api-interfaces.js';
 import { NextFunction, Request, Response, Router } from 'express';
@@ -30,5 +30,6 @@ async function routeGetUser(req: Request, res: Response, next: NextFunction) {
   res.status(200).send(toApiUser(user, betStats));
 }
 
-export const userController = Router();
-userController.get('/', asyncWrapper(routeGetUser));
+const userController = Router();
+userController.get('/', asyncHandler(routeGetUser));
+export default userController;

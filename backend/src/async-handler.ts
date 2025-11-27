@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 
 type AsyncRequestHandler = (
   req: Request,
@@ -6,8 +6,8 @@ type AsyncRequestHandler = (
   next: NextFunction,
 ) => Promise<any>;
 
-export const asyncWrapper =
+export const asyncHandler =
   (fn: AsyncRequestHandler) =>
   (req: Request, res: Response, next: NextFunction) => {
-    fn(req, res, next);
+    Promise.resolve(fn(req, res, next)).catch(next);
   };

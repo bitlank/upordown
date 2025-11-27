@@ -103,7 +103,7 @@ describe('Auth', () => {
       mockGetEnvOrThrow.mockReturnValue('test-secret');
 
       const authModule = await import('../../src/user/auth.js');
-      authController = authModule.authController;
+      authController = authModule.default;
 
       app = express();
       app.use('/auth', authController);

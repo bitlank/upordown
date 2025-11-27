@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { userController } from '../../src/user/user-controller.js';
+import userController from '../../src/user/user-controller.js';
 import * as userRepository from '../../src/user/user-repository.js';
 import * as betRepository from '../../src/bet/bet-repository.js';
 import supertest from 'supertest';

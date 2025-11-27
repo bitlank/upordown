@@ -2,7 +2,7 @@ import { Bet } from './types';
 import { getBetInfo, isTickerSupported, placeBet } from './bet-service.js';
 import { findBets } from './bet-repository.js';
 import { parseEnum } from '../utils.js';
-import { asyncWrapper } from '../request-wrapper.js';
+import { asyncHandler } from '../async-handler.js';
 import { ApiBet, BetDirection, BetStatus } from '../shared/api-interfaces.js';
 import { Router, Request, Response, NextFunction } from 'express';
 
@@ -71,7 +71,7 @@ async function routePostPlaceBet(
 }
 
 const betController = Router();
-betController.get('/info', asyncWrapper(routeGetBetInfo));
-betController.get('/open', asyncWrapper(routeGetOpenBets));
-betController.post('/:ticker/:direction', asyncWrapper(routePostPlaceBet));
+betController.get('/info', asyncHandler(routeGetBetInfo));
+betController.get('/open', asyncHandler(routeGetOpenBets));
+betController.post('/:ticker/:direction', asyncHandler(routePostPlaceBet));
 export default betController;
