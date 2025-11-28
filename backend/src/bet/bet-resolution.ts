@@ -3,7 +3,7 @@ import { getResolutionTime } from './bet-config.js';
 import { updateBet, findBets } from './bet-repository.js';
 import { getPool } from '../db/db-pool.js';
 import priceService, { PRICE_INTERVAL } from '../price/price-service.js';
-import { updateUserScore } from '../user/user-repository.js';
+import { updateUserStats } from '../user/user-repository.js';
 import { groupBy } from '../utils.js';
 import { BetStatus, BetDirection } from '../shared/api-interfaces.js';
 import { Connection } from 'mysql2/promise.js';
@@ -22,7 +22,6 @@ function getBetStatus(bet: Bet, resolutionPrice: number): BetStatus {
 
 async function resolveBet(connection: Connection, bet: Bet, price: number) {
   const newStatus = getBetStatus(bet, price);
-  const scoreChange = newStatus === BetStatus.Won ? 1 : -1;
 
   connection.beginTransaction();
   try {
@@ -34,7 +33,12 @@ async function resolveBet(connection: Connection, bet: Bet, price: number) {
       return;
     }
 
-    await updateUserScore(bet.userId, scoreChange, connection);
+    await updateUserStats(
+      bet.userId,
+      newStatus === BetStatus.Won ? 1 : 0,
+      newStatus === BetStatus.Lost ? 1 : 0,
+      connection,
+    );
     connection.commit();
 
     console.log(`Resolved bet #${bet.id} as ${newStatus}`);

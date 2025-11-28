@@ -6,10 +6,10 @@ export async function createUser(connection?: Connection): Promise<number> {
   const conn = connection ? connection : getPool();
   const [result] = await conn.execute<ResultSetHeader>(
     `
-      INSERT INTO users (created_at, score)
-      VALUES (?, ?)
+      INSERT INTO users (created_at, bets_won, bets_lost)
+      VALUES (?, ?, ?)
     `,
-    [new Date(), 0],
+    [new Date(), 0, 0],
   );
 
   return result.insertId;
@@ -36,23 +36,27 @@ export async function getUser(
   return {
     id: Number(row.id),
     createdAt: (row.created_at as Date).getTime(),
-    score: Number(row.score),
+    betsWon: Number(row.bets_won),
+    betsLost: Number(row.bets_lost),
   };
 }
 
-export async function updateUserScore(
+export async function updateUserStats(
   userId: number,
-  amount: number,
+  betsWon: number,
+  betsLost: number,
   connection?: Connection,
 ): Promise<boolean> {
   const conn = connection ? connection : getPool();
   const [result] = await conn.execute<ResultSetHeader>(
     `
       UPDATE users
-      SET score = score + ?
+      SET
+        bets_won = bets_won + ?,
+        bets_lost = bets_lost + ?
       WHERE id = ?
     `,
-    [amount, userId],
+    [betsWon, betsLost, userId],
   );
 
   return (result.affectedRows || 0) === 1;

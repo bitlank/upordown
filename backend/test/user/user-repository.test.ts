@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   createUser,
   getUser,
-  updateUserScore,
+  updateUserStats,
 } from '../../src/user/user-repository.js';
 import { getPool } from '../../src/db/db-pool.js';
 import { ResultSetHeader } from 'mysql2';
@@ -45,7 +45,12 @@ describe('User Repository', () => {
 
   describe('getUser', () => {
     it('should return the user if user is found', async () => {
-      const mockRow = { id: 1, created_at: new Date(), score: 100 };
+      const mockRow = {
+        id: 1,
+        created_at: new Date(),
+        bets_won: 100,
+        bets_lost: 50,
+      };
       mockExecute.mockResolvedValue([[mockRow]]);
 
       const user = await getUser(1);
@@ -53,7 +58,8 @@ describe('User Repository', () => {
       expect(user).not.toBeNull();
       expect(user?.id).toBe(mockRow.id);
       expect(user?.createdAt).toBe(mockRow.created_at.getTime());
-      expect(user?.score).toBe(mockRow.score);
+      expect(user?.betsWon).toBe(mockRow.bets_won);
+      expect(user?.betsLost).toBe(mockRow.bets_lost);
     });
 
     it('should return null if user is not found', async () => {
@@ -78,7 +84,7 @@ describe('User Repository', () => {
       } as ResultSetHeader;
       mockExecute.mockResolvedValue([mockResult]);
 
-      const result = await updateUserScore(1, 50);
+      const result = await updateUserStats(1, 100, 50);
 
       expect(result).toBe(true);
     });
@@ -95,7 +101,7 @@ describe('User Repository', () => {
       } as ResultSetHeader;
       mockExecute.mockResolvedValue([mockResult]);
 
-      const result = await updateUserScore(1, 50);
+      const result = await updateUserStats(1, 100, 50);
 
       expect(result).toBe(false);
     });

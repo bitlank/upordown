@@ -46,6 +46,27 @@ const migrations = [
   `
     CREATE INDEX idx_bets_status_resolve_at ON bets (status, resolve_at);
   `,
+  `
+    ALTER TABLE users
+      ADD COLUMN bets_won INT NOT NULL,
+      ADD COLUMN bets_lost INT NOT NULL,
+      DROP COLUMN score;
+  `,
+  `
+    UPDATE users
+    JOIN (
+      SELECT
+        user_id,
+        SUM(IF(status = 'won', 1, 0)) AS won,
+        SUM(IF(status = 'lost', 1, 0)) AS lost
+      FROM bets
+      GROUP BY 1
+    ) AS bet_stats
+      ON users.id = bet_stats.user_id
+    SET
+      bets_won = bet_stats.won,
+      bets_lost = bet_stats.lost
+  `,
 ];
 
 async function setUpMigrationsTable(conn: Connection) {

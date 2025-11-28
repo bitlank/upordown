@@ -35,14 +35,14 @@ vi.mock('../../src/price/price-service', () => ({
 }));
 
 vi.mock('../../src/user/user-repository', () => ({
-  updateUserScore: vi.fn(),
+  updateUserStats: vi.fn(),
 }));
 
 const mockGetResolutionTime = betConfig.getResolutionTime as vi.Mock;
 const mockUpdateBet = betRepository.updateBet as vi.Mock;
 const mockFindBets = betRepository.findBets as vi.Mock;
 const mockGetPrice = priceService.getPrice as vi.Mock;
-const mockUpdateUserScore = userRepository.updateUserScore as vi.Mock;
+const mockUpdateUserStats = userRepository.updateUserStats as vi.Mock;
 const mockGetPool = getPool as vi.Mock;
 
 describe('bet-resolution', () => {
@@ -111,7 +111,7 @@ describe('bet-resolution', () => {
       mockFindBets.mockResolvedValueOnce([mockBet1, mockBet2, mockBet3]);
 
       mockUpdateBet.mockResolvedValue(true);
-      mockUpdateUserScore.mockResolvedValue(true);
+      mockUpdateUserStats.mockResolvedValue(true);
 
       await resolveBets();
 
@@ -124,8 +124,8 @@ describe('bet-resolution', () => {
       const updateBetCalls = new Map(
         mockUpdateBet.mock.calls.map((call) => [call[0], call]),
       );
-      const updateScoreCalls = new Map(
-        mockUpdateUserScore.mock.calls.map((call) => [call[0], call]),
+      const updateUserCalls = new Map(
+        mockUpdateUserStats.mock.calls.map((call) => [call[0], call]),
       );
 
       expect(updateBetCalls.get(mockBet1.id)).toEqual([
@@ -135,9 +135,10 @@ describe('bet-resolution', () => {
         1100,
         expect.anything(),
       ]);
-      expect(updateScoreCalls.get(mockBet1.userId)).toEqual([
+      expect(updateUserCalls.get(mockBet1.userId)).toEqual([
         mockBet1.userId,
         1,
+        0,
         expect.anything(),
       ]);
 
@@ -148,9 +149,10 @@ describe('bet-resolution', () => {
         150,
         expect.anything(),
       ]);
-      expect(updateScoreCalls.get(mockBet2.userId)).toEqual([
+      expect(updateUserCalls.get(mockBet2.userId)).toEqual([
         mockBet2.userId,
         1,
+        0,
         expect.anything(),
       ]);
 
@@ -161,9 +163,10 @@ describe('bet-resolution', () => {
         1050,
         expect.anything(),
       ]);
-      expect(updateScoreCalls.get(mockBet3.userId)).toEqual([
+      expect(updateUserCalls.get(mockBet3.userId)).toEqual([
         mockBet3.userId,
-        -1,
+        0,
+        1,
         expect.anything(),
       ]);
     });

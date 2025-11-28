@@ -12,7 +12,6 @@ export interface ApiPriceData {
 export interface ApiUser {
   createdAt: number;
   score: number;
-  betsOpen: number;
   betsWon: number;
   betsLost: number;
 }

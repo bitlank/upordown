@@ -1,5 +1,6 @@
 export interface User {
   id: number;
   createdAt: number;
-  score: number;
+  betsWon: number;
+  betsLost: number;
 }
