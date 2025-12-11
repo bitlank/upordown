@@ -29,3 +29,15 @@ A simple betting game where users can bet on whether the price of a cryptocurren
 ## Accessing the game
 
 Open your browser and navigate to `http://<your-server-ip>`. The game is accessible on the standard port 80.
+
+### Backing up the DB
+
+```bash
+. .env && sudo docker exec -i upordown-db-1 mariadb-dump upordown --password=$DB_ROOT_PASSWORD > upordown_$(date +%Y-%m-%d).sql
+```
+
+### Restoring the DB
+
+```bash
+. .env && sudo docker exec -i upordown-db-1 mariadb --password=$DB_ROOT_PASSWORD upordown < upordown_XXXX-XX-XX.sql
+```
