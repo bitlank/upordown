@@ -1,13 +1,10 @@
 FROM node:20-alpine AS builder
 
-WORKDIR /app/backend
-COPY backend/package*.json .
-RUN npm install
-
 WORKDIR /app
 COPY backend backend
 
 WORKDIR /app/backend
+RUN npm ci
 RUN npm run build
 
 FROM node:20-alpine
