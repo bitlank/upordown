@@ -2,7 +2,7 @@ services:
   frontend:
     image: ghcr.io/bitlank/upordown-frontend:latest
     ports:
-      - "80:80"
+      - "80:8080"
     networks:
       - frontend
     depends_on:
